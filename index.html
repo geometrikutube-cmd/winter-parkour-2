@@ -1,0 +1,3326 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Winter Block Parkour</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #8ed7f7;
+    font-family: Arial, Helvetica, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+body {
+    position: fixed;
+    inset: 0;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 14px;
+    z-index: 20;
+    pointer-events: none;
+}
+
+#top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.uiBox {
+    padding: 10px 14px;
+    border-radius: 16px;
+    color: white;
+    background: rgba(5, 15, 27, 0.68);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#coinsUI {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+#distanceUI {
+    margin-top: 4px;
+    font-size: 13px;
+    opacity: 0.78;
+}
+
+#titleUI {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.musicButton {
+    pointer-events: auto;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+    padding: 10px 14px;
+    color: white;
+    background: rgba(5,15,27,0.72);
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.24);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.musicButton:active {
+    transform: scale(0.94);
+}
+
+#levelUI {
+    margin-top: 4px;
+    font-size: 13px;
+    opacity: 0.78;
+}
+
+#controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 18px;
+    z-index: 25;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 18px;
+    pointer-events: none;
+}
+
+.controlSide {
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.controlButton {
+    width: 72px;
+    height: 72px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 22px;
+    background: rgba(5,15,27,0.72);
+    color: white;
+    font-size: 30px;
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.controlButton:active {
+    transform: scale(0.92);
+    background: rgba(30,100,180,0.85);
+}
+
+#jumpButton {
+    width: 92px;
+    font-size: 18px;
+}
+
+#message {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: min(390px, calc(100vw - 36px));
+    transform: translate(-50%, -50%) scale(0.92);
+    z-index: 50;
+    padding: 28px;
+    border-radius: 24px;
+    text-align: center;
+    color: white;
+    background: rgba(4,12,22,0.94);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 25px 80px rgba(0,0,0,0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.25s ease;
+}
+
+#message.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+#message h1 {
+    margin: 0 0 10px;
+    font-size: 34px;
+}
+
+#message p {
+    margin: 8px 0;
+    color: #dcecff;
+    line-height: 1.5;
+}
+
+#restartButton {
+    margin-top: 16px;
+    border: 0;
+    border-radius: 14px;
+    padding: 13px 24px;
+    color: white;
+    background: #237bd0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+#help {
+    position: fixed;
+    left: 50%;
+    bottom: 105px;
+    transform: translateX(-50%);
+    z-index: 15;
+    color: rgba(255,255,255,0.72);
+    font-size: 13px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+@media (max-width: 700px) {
+    #help {
+        display: none;
+    }
+
+    .controlButton {
+        width: 66px;
+        height: 66px;
+    }
+
+    #jumpButton {
+        width: 86px;
+    }
+
+    #titleUI {
+        display: none;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="ui">
+    <div id="top">
+        <div class="uiBox">
+            <div id="coinsUI">âï¸ ÐÐ¾Ð½ÐµÑÑ: 0</div>
+            <div id="distanceUI">ÐÐ¸ÑÑÐ°Ð½ÑÐ¸Ñ: 0 Ð¼</div>
+            <div id="levelUI">Ð£ÑÐ¾Ð²ÐµÐ½Ñ: 1</div>
+        </div>
+<button class="musicButton" id="musicButton">ð ÐÑÐ·ÑÐºÐ°</button>
+    <div class="uiBox" id="titleUI">
+        WINTER BLOCK PARKOUR
+    </div>
+</div>
+
+</div>
+
+<div id="help">
+    â â / A D â Ð´Ð²Ð¸Ð¶ÐµÐ½Ð¸Ðµ &nbsp; â¢ &nbsp; SPACE â Ð¿ÑÑÐ¶Ð¾Ðº
+</div>
+
+<div id="controls">
+    <div class="controlSide">
+        <button class="controlButton" id="leftButton">â</button>
+        <button class="controlButton" id="rightButton">â¶</button>
+    </div>
+
+<div class="controlSide">
+    <button class="controlButton" id="jumpButton">JUMP</button>
+</div>
+
+</div>
+
+<div id="message">
+    <h1 id="messageTitle">Ð¤Ð¸Ð½Ð¸Ñ!</h1>
+    <p id="messageText"></p>
+    <button id="restartButton">ÐÐ³ÑÐ°ÑÑ ÑÐ½Ð¾Ð²Ð°</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+"use strict";
+
+/* =========================================================
+   MUSIC
+   ========================================================= */
+
+let musicEnabled =
+    localStorage.getItem("winterParkourMusic") === "on";
+let audioContext = null;
+let musicTimer = null;
+let musicStep = 0;
+
+const melody = [
+    523.25, 659.25, 783.99, 659.25,
+    587.33, 698.46, 880.00, 698.46,
+    523.25, 659.25, 783.99, 1046.50,
+    880.00, 783.99, 659.25, 523.25
+];
+
+function playMusicNote() {
+    if (!audioContext || !musicEnabled) return;
+
+    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.value = melody[musicStep % melody.length];
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.045, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.start(now);
+    osc.stop(now + 0.24);
+
+    musicStep++;
+}
+
+function startMusic() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+
+    if (musicTimer) return;
+
+    playMusicNote();
+    musicTimer = setInterval(playMusicNote, 260);
+}
+
+function stopMusic() {
+    if (musicTimer) {
+        clearInterval(musicTimer);
+        musicTimer = null;
+    }
+}
+
+const musicButton = document.getElementById("musicButton");
+
+    musicButton.addEventListener("click", function() {
+
+    musicEnabled = !musicEnabled;
+
+    localStorage.setItem(
+        "winterParkourMusic",
+        musicEnabled ? "on" : "off"
+    );
+
+    if (musicEnabled) {
+
+        musicButton.textContent =
+            "ð ÐÑÐ·ÑÐºÐ°";
+
+        startMusic();
+
+    } else {
+
+        musicButton.textContent =
+            "ð ÐÑÐ·ÑÐºÐ°";
+
+        stopMusic();
+    }
+});
+
+
+if (musicEnabled) {
+
+    musicButton.textContent =
+        "ð ÐÑÐ·ÑÐºÐ°";
+
+    document.addEventListener(
+        "pointerdown",
+        function musicUnlock() {
+
+            startMusic();
+
+            document.removeEventListener(
+                "pointerdown",
+                musicUnlock
+            );
+        },
+        { once: true }
+    );
+
+    document.addEventListener(
+        "keydown",
+        function musicKeyUnlock() {
+
+            startMusic();
+
+            document.removeEventListener(
+                "keydown",
+                musicKeyUnlock
+            );
+        },
+        { once: true }
+    );
+}
+
+/* =========================================================
+   WINTER BLOCK PARKOUR
+   ========================================================= */
+
+const AUTO_SPEED = 6.6;
+const SIDE_SPEED = 7.5;
+const SIDE_ACCEL = 32;
+const SIDE_FRICTION = 38;
+
+const JUMP_FORCE = 8.8;
+const GRAVITY = 22;
+
+const COYOTE_TIME = 0.13;
+const JUMP_BUFFER_TIME = 0.14;
+
+const PLAYER_WIDTH = 0.8;
+const PLAYER_HEIGHT = 2.4;
+
+const START_Z = 3;
+const FINISH_Z = -151;
+
+const WORLD_LIMIT_X = 6.2;
+
+
+/* =========================================================
+   SCENE
+   ========================================================= */
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x9edcff);
+
+scene.fog = new THREE.Fog(
+    0x9edcff,
+    38,
+    125
+);
+
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+
+const camera = new THREE.PerspectiveCamera(
+    65,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    250
+);
+
+camera.position.set(
+    0,
+    5.5,
+    14
+);
+
+
+/* =========================================================
+   RENDERER
+   ========================================================= */
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
+
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type =
+    THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+/* =========================================================
+   LIGHT
+   ========================================================= */
+
+const hemi = new THREE.HemisphereLight(
+    0xe8f8ff,
+    0x3c5265,
+    2.2
+);
+
+scene.add(hemi);
+
+
+const sun = new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
+sun.position.set(
+    25,
+    40,
+    15
+);
+
+sun.castShadow = true;
+
+sun.shadow.mapSize.width = 2048;
+sun.shadow.mapSize.height = 2048;
+
+sun.shadow.camera.left = -55;
+sun.shadow.camera.right = 55;
+sun.shadow.camera.top = 55;
+sun.shadow.camera.bottom = -55;
+
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 160;
+
+scene.add(sun);
+
+
+/* =========================================================
+   TEXTURES
+   ========================================================= */
+
+function createSnowTexture() {
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width = 256;
+    canvas.height = 256;
+
+    const ctx =
+        canvas.getContext("2d");
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            256,
+            256
+        );
+
+    gradient.addColorStop(
+        0,
+        "#ffffff"
+    );
+
+    gradient.addColorStop(
+        0.55,
+        "#e8f8ff"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#b9d8e8"
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        256,
+        256
+    );
+
+    for (let i = 0; i < 650; i++) {
+
+        const x =
+            Math.random() * 256;
+
+        const y =
+            Math.random() * 256;
+
+        const r =
+            Math.random() * 2 + 0.2;
+
+        ctx.fillStyle =
+            `rgba(255,255,255,${0.15 + Math.random() * 0.7})`;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y,
+            r,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+    }
+
+    const texture =
+        new THREE.CanvasTexture(canvas);
+
+    texture.wrapS =
+        THREE.RepeatWrapping;
+
+    texture.wrapT =
+        THREE.RepeatWrapping;
+
+    texture.repeat.set(
+        2,
+        2
+    );
+
+    texture.colorSpace =
+        THREE.SRGBColorSpace;
+
+    return texture;
+}
+
+
+function createIceTexture() {
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width = 256;
+    canvas.height = 256;
+
+    const ctx =
+        canvas.getContext("2d");
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            256,
+            256
+        );
+
+    gradient.addColorStop(
+        0,
+        "#e7fcff"
+    );
+
+    gradient.addColorStop(
+        0.4,
+        "#8fe1f3"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#348fb8"
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        256,
+        256
+    );
+
+    for (let i = 0; i < 22; i++) {
+
+        ctx.strokeStyle =
+            "rgba(255,255,255,0.45)";
+
+        ctx.lineWidth =
+            Math.random() * 2 + 0.5;
+
+        ctx.beginPath();
+
+        let x =
+            Math.random() * 256;
+
+        let y =
+            Math.random() * 256;
+
+        ctx.moveTo(x, y);
+
+        for (let j = 0; j < 5; j++) {
+
+            x +=
+                Math.random() * 70 - 35;
+
+            y +=
+                Math.random() * 70 - 35;
+
+            ctx.lineTo(x, y);
+        }
+
+        ctx.stroke();
+    }
+
+    const texture =
+        new THREE.CanvasTexture(canvas);
+
+    texture.wrapS =
+        THREE.RepeatWrapping;
+
+    texture.wrapT =
+        THREE.RepeatWrapping;
+
+    texture.repeat.set(
+        2,
+        2
+    );
+
+    texture.colorSpace =
+        THREE.SRGBColorSpace;
+
+    return texture;
+}
+
+
+function createWoodTexture() {
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width = 256;
+    canvas.height = 256;
+
+    const ctx =
+        canvas.getContext("2d");
+
+    ctx.fillStyle =
+        "#68432c";
+
+    ctx.fillRect(
+        0,
+        0,
+        256,
+        256
+    );
+
+    for (
+        let y = 0;
+        y < 256;
+        y += 32
+    ) {
+
+        ctx.fillStyle =
+            y % 64 === 0
+                ? "#7e5336"
+                : "#5c3a27";
+
+        ctx.fillRect(
+            0,
+            y,
+            256,
+            30
+        );
+
+        ctx.strokeStyle =
+            "rgba(20,10,5,0.45)";
+
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            y
+        );
+
+        ctx.lineTo(
+            256,
+            y
+        );
+
+        ctx.stroke();
+    }
+
+    for (let i = 0; i < 100; i++) {
+
+        const x =
+            Math.random() * 256;
+
+        const y =
+            Math.random() * 256;
+
+        ctx.strokeStyle =
+            "rgba(20,10,5,0.22)";
+
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x,
+            y
+        );
+
+        ctx.lineTo(
+            x + Math.random() * 30 - 15,
+            y + Math.random() * 3 - 1.5
+        );
+
+        ctx.stroke();
+    }
+
+    const texture =
+        new THREE.CanvasTexture(canvas);
+
+    texture.wrapS =
+        THREE.RepeatWrapping;
+
+    texture.wrapT =
+        THREE.RepeatWrapping;
+
+    texture.repeat.set(
+        2,
+        2
+    );
+
+    texture.colorSpace =
+        THREE.SRGBColorSpace;
+
+    return texture;
+}
+
+
+const snowTexture =
+    createSnowTexture();
+
+const iceTexture =
+    createIceTexture();
+
+const woodTexture =
+    createWoodTexture();
+
+
+/* =========================================================
+   MATERIALS
+   ========================================================= */
+
+const mats = {
+
+    snow:
+        new THREE.MeshStandardMaterial({
+            map: snowTexture,
+            roughness: 0.84
+        }),
+
+    ice:
+        new THREE.MeshStandardMaterial({
+            map: iceTexture,
+            roughness: 0.22,
+            metalness: 0.12
+        }),
+
+    wood:
+        new THREE.MeshStandardMaterial({
+            map: woodTexture,
+            roughness: 0.9
+        }),
+
+    blue:
+        new THREE.MeshStandardMaterial({
+            color: 0x2b7ac3,
+            roughness: 0.62
+        }),
+
+    dark:
+        new THREE.MeshStandardMaterial({
+            color: 0x16334f,
+            roughness: 0.75
+        }),
+
+    white:
+        new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.82
+        }),
+
+    red:
+        new THREE.MeshStandardMaterial({
+            color: 0xd63232,
+            roughness: 0.62
+        }),
+
+    gold:
+        new THREE.MeshStandardMaterial({
+            color: 0xffd83d,
+            emissive: 0x805000,
+            emissiveIntensity: 0.5,
+            metalness: 0.65,
+            roughness: 0.22
+        }),
+
+    black:
+        new THREE.MeshStandardMaterial({
+            color: 0x111820,
+            roughness: 0.8
+        }),
+
+    green:
+        new THREE.MeshStandardMaterial({
+            color: 0x27583a,
+            roughness: 0.9
+        })
+};
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function box(
+    width,
+    height,
+    depth,
+    material
+) {
+
+    const geometry =
+        new THREE.BoxGeometry(
+            width,
+            height,
+            depth
+        );
+
+    const mesh =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    return mesh;
+}
+
+
+function cylinder(
+    radiusTop,
+    radiusBottom,
+    height,
+    material,
+    segments = 16
+) {
+
+    const geometry =
+        new THREE.CylinderGeometry(
+            radiusTop,
+            radiusBottom,
+            height,
+            segments
+        );
+
+    const mesh =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    return mesh;
+}
+
+
+/* =========================================================
+   WORLD DATA
+   ========================================================= */
+
+const platforms = [];
+const hazards = [];
+const coins = [];
+const trees = [];
+
+/* =========================================================
+   ÐÐÐ¡ÐÐÐÐÐ§ÐÐ«Ð ÐÐÐ 
+   ========================================================= */
+
+let nextGeneratedZ = -160;
+let generatedX = 2;
+let generatedY = 13;
+
+const GENERATED_AHEAD = 280;
+const GENERATED_BEHIND = 55;
+
+function currentDistance() {
+    return Math.max(
+        0,
+        START_Z - player.position.z
+    );
+}
+
+function currentLevel() {
+    return 1 + Math.floor(currentDistance() / 500);
+}
+
+function getRunSpeed() {
+    return Math.min(
+        12,
+        AUTO_SPEED + currentDistance() * 0.0018
+    );
+}
+
+function removeObjectFromScene(mesh) {
+    if (mesh && mesh.parent) {
+        mesh.parent.remove(mesh);
+    }
+}
+
+function cleanupInfiniteWorld() {
+
+    for (let i = platforms.length - 1; i >= 0; i--) {
+        const p = platforms[i];
+
+        if (
+            p.dynamic &&
+            p.z > player.position.z + GENERATED_BEHIND
+        ) {
+            removeObjectFromScene(p.mesh);
+            platforms.splice(i, 1);
+        }
+    }
+
+    for (let i = hazards.length - 1; i >= 0; i--) {
+        const h = hazards[i];
+
+        if (
+            h.dynamic &&
+            h.z > player.position.z + GENERATED_BEHIND
+        ) {
+            removeObjectFromScene(h.mesh);
+            hazards.splice(i, 1);
+        }
+    }
+
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+
+        if (
+            c.dynamic &&
+            c.mesh.position.z > player.position.z + GENERATED_BEHIND
+        ) {
+            removeObjectFromScene(c.mesh);
+            coins.splice(i, 1);
+        }
+    }
+
+    for (let i = trees.length - 1; i >= 0; i--) {
+        const tree = trees[i];
+
+        if (
+            tree.userData.dynamic &&
+            tree.position.z > player.position.z + GENERATED_BEHIND
+        ) {
+            removeObjectFromScene(tree);
+            trees.splice(i, 1);
+        }
+    }
+}
+
+function generateInfiniteChunk() {
+
+    const distance = currentDistance();
+    const level = currentLevel();
+
+    const gap = 8.0 + Math.random() * 1.5;
+
+    nextGeneratedZ -= gap;
+
+    const maxX = Math.min(
+        4.3,
+        3.1 + level * 0.18
+    );
+
+    let targetX =
+        generatedX +
+        (Math.random() * 4.4 - 2.2);
+
+    targetX = THREE.MathUtils.clamp(
+        targetX,
+        -maxX,
+        maxX
+    );
+
+    generatedX = targetX;
+
+    const maxStepY =
+        Math.min(1.15, 0.65 + level * 0.08);
+
+    generatedY +=
+        (Math.random() * 2 - 1) *
+        maxStepY;
+
+    generatedY = THREE.MathUtils.clamp(
+        generatedY,
+        0,
+        18
+    );
+
+    const width =
+        Math.max(
+            5.0,
+            7.2 - level * 0.12 -
+            Math.random() * 1.1
+        );
+
+    const depth =
+        6.8 + Math.random() * 1.1;
+
+    const materialRoll = Math.random();
+
+    const material =
+        materialRoll < 0.24
+            ? mats.ice
+            : materialRoll < 0.48
+                ? mats.wood
+                : mats.snow;
+
+    const mesh = platform(
+        generatedX,
+        generatedY,
+        nextGeneratedZ,
+        width,
+        depth,
+        0.8,
+        material
+    );
+
+    const platformData =
+        platforms[platforms.length - 1];
+
+    platformData.dynamic = true;
+
+    /* ÐÐ¾Ð½ÐµÑÐ° Ð¿Ð¾ÑÑÐ¸ Ð½Ð° ÐºÐ°Ð¶Ð´Ð¾Ð¹ Ð¿Ð»Ð°ÑÑÐ¾ÑÐ¼Ðµ */
+
+    createCoin(
+        generatedX,
+        generatedY + 1.15,
+        nextGeneratedZ
+    );
+
+    coins[coins.length - 1].dynamic = true;
+
+    /* ÐÑÐµÐ¿ÑÑÑÑÐ²Ð¸Ñ Ð¿Ð¾ÑÐ²Ð»ÑÑÑÑÑ Ð¿Ð¾ÑÑÐµÐ¿ÐµÐ½Ð½Ð¾ */
+
+    const hazardChance =
+        Math.min(
+            0.48,
+            0.18 + level * 0.035
+        );
+
+    if (
+        Math.random() < hazardChance
+    ) {
+
+        const hazardWidth =
+            Math.min(
+                1.8,
+                1.25 + Math.random() * 0.45
+            );
+
+        const hazardHeight =
+            1.0 + Math.random() * 0.9;
+
+        const hazardX =
+            THREE.MathUtils.clamp(
+                generatedX +
+                (Math.random() * 2.8 - 1.4),
+                generatedX - width / 2 + 1,
+                generatedX + width / 2 - 1
+            );
+
+        hazard(
+            hazardX,
+            generatedY +
+            0.4 +
+            hazardHeight / 2,
+            nextGeneratedZ,
+            hazardWidth,
+            hazardHeight,
+            1.15,
+            Math.random() < 0.5
+                ? mats.red
+                : mats.blue
+        );
+
+        hazards[hazards.length - 1].dynamic = true;
+    }
+
+    /* ÐÐ»ÐºÐ¸ Ð¿Ð¾ Ð±Ð¾ÐºÐ°Ð¼ ÑÑÐ°ÑÑÑ */
+
+    if (Math.random() < 0.72) {
+
+        const side =
+            Math.random() < 0.5
+                ? -1
+                : 1;
+
+        const treeX =
+            side * (
+                7.0 +
+                Math.random() * 2.8
+            );
+
+        const tree =
+            createTree(
+                treeX,
+                Math.max(0, generatedY - 0.2),
+                nextGeneratedZ,
+                0.9 + Math.random() * 0.6
+            );
+
+        tree.userData.dynamic = true;
+    }
+}
+
+function ensureInfiniteWorld() {
+
+    while (
+        nextGeneratedZ >
+        player.position.z - GENERATED_AHEAD
+    ) {
+        generateInfiniteChunk();
+    }
+
+    cleanupInfiniteWorld();
+}
+
+/* ÐÐµÑÐ²ÑÐµ Ð´Ð¾Ð¿Ð¾Ð»Ð½Ð¸ÑÐµÐ»ÑÐ½ÑÐµ ÑÐµÐ³Ð¼ÐµÐ½ÑÑ ÑÐ¾Ð·Ð´Ð°ÑÑÑÑ ÑÑÐ°Ð·Ñ */
+ensureInfiniteWorld();
+
+
+/* =========================================================
+   PLATFORM
+   ========================================================= */
+
+function platform(
+    x,
+    y,
+    z,
+    width,
+    depth,
+    height = 0.8,
+    material = mats.snow
+) {
+
+    const mesh =
+        box(
+            width,
+            height,
+            depth,
+            material
+        );
+
+    mesh.position.set(
+        x,
+        y,
+        z
+    );
+
+    scene.add(mesh);
+
+    platforms.push({
+        mesh: mesh,
+        x: x,
+        y: y,
+        z: z,
+        width: width,
+        depth: depth,
+        height: height,
+        top: y + height / 2
+    });
+
+    return mesh;
+}
+
+
+/* =========================================================
+   COURSE
+   ========================================================= */
+
+platform(
+    0,
+    0,
+    2,
+    10,
+    8,
+    0.8,
+    mats.snow
+);
+
+platform(
+    0,
+    0,
+    -6,
+    7,
+    7,
+    0.8,
+    mats.snow
+);
+
+platform(
+    4,
+    1,
+    -15,
+    6,
+    6,
+    0.8,
+    mats.ice
+);
+
+platform(
+    -2,
+    2,
+    -24,
+    5,
+    6,
+    0.8,
+    mats.snow
+);
+
+platform(
+    3,
+    3,
+    -33,
+    6,
+    5,
+    0.8,
+    mats.snow
+);
+
+platform(
+    -3,
+    4,
+    -42,
+    5,
+    6,
+    0.8,
+    mats.ice
+);
+
+platform(
+    2,
+    5,
+    -52,
+    7,
+    7,
+    0.8,
+    mats.snow
+);
+
+platform(
+    0,
+    6,
+    -63,
+    9,
+    8,
+    0.8,
+    mats.snow
+);
+
+/* LEVEL 2 */
+platform(-2, 6, -73, 7, 7, 0.8, mats.snow);
+platform(3, 7, -83, 6, 6, 0.8, mats.ice);
+platform(-3, 8, -94, 6, 7, 0.8, mats.snow);
+
+/* LEVEL 3 */
+platform(2, 9, -105, 7, 7, 0.8, mats.snow);
+platform(-3, 10, -116, 5, 6, 0.8, mats.ice);
+platform(1, 11, -127, 8, 8, 0.8, mats.snow);
+platform(-2, 12, -139, 6, 7, 0.8, mats.ice);
+platform(2, 13, -151, 9, 9, 0.8, mats.snow);
+
+
+/* =========================================================
+   HAZARDS
+   ========================================================= */
+
+function hazard(
+    x,
+    y,
+    z,
+    width,
+    height,
+    depth,
+    material = mats.red
+) {
+
+    const mesh =
+        box(
+            width,
+            height,
+            depth,
+            material
+        );
+
+    mesh.position.set(
+        x,
+        y,
+        z
+    );
+
+    scene.add(mesh);
+
+    hazards.push({
+        mesh: mesh,
+        x: x,
+        y: y,
+        z: z,
+        width: width,
+        height: height,
+        depth: depth
+    });
+
+    return mesh;
+}
+
+
+hazard(
+    0,
+    1,
+    -10,
+    2,
+    1,
+    1.5
+);
+
+hazard(
+    4,
+    2,
+    -19,
+    2,
+    2,
+    1.4
+);
+
+hazard(
+    -2,
+    3,
+    -28,
+    1.6,
+    3,
+    1.8
+);
+
+hazard(
+    3,
+    4,
+    -37,
+    2,
+    1.5,
+    1.8
+);
+
+hazard(
+    -3,
+    5,
+    -47,
+    1.5,
+    2,
+    1.8
+);
+
+/* LEVEL 2 + 3 HAZARDS */
+hazard(-2, 7, -77, 1.8, 1.5, 1.6);
+hazard(3, 8, -87, 2, 1.5, 1.7);
+hazard(-3, 9, -98, 1.8, 2, 1.8);
+hazard(2, 10, -109, 2, 1.5, 1.7);
+hazard(-3, 11, -120, 1.8, 2, 1.8);
+hazard(1, 12, -132, 2, 1.5, 1.8);
+hazard(-2, 13, -144, 1.8, 2, 1.8);
+
+
+/* =========================================================
+   COINS
+   ========================================================= */
+
+function createCoin(
+    x,
+    y,
+    z
+) {
+
+    const geometry =
+        new THREE.TorusGeometry(
+            0.32,
+            0.10,
+            12,
+            24
+        );
+
+    const mesh =
+        new THREE.Mesh(
+            geometry,
+            mats.gold
+        );
+
+    mesh.position.set(
+        x,
+        y,
+        z
+    );
+
+    mesh.rotation.x =
+        Math.PI / 2;
+
+    mesh.castShadow = true;
+
+    scene.add(mesh);
+
+    coins.push({
+        mesh: mesh,
+        collected: false,
+        baseY: y,
+        phase: Math.random() * Math.PI * 2
+    });
+
+    return mesh;
+}
+
+
+createCoin(0, 1.25, -4);
+createCoin(4, 2.25, -14);
+createCoin(-2, 3.25, -23);
+createCoin(3, 4.25, -32);
+createCoin(-3, 5.25, -41);
+createCoin(2, 6.25, -51);
+createCoin(0, 7.25, -61);
+createCoin(-2, 7.25, -70);
+createCoin(3, 8.25, -80);
+createCoin(-3, 9.25, -91);
+createCoin(2, 10.25, -102);
+createCoin(-3, 11.25, -113);
+createCoin(1, 12.25, -124);
+createCoin(-2, 13.25, -136);
+createCoin(2, 14.25, -148);
+
+
+/* =========================================================
+   TREES
+   ========================================================= */
+
+function createTree(
+    x,
+    y,
+    z,
+    scale = 1
+) {
+
+    const group =
+        new THREE.Group();
+
+    const trunk =
+        cylinder(
+            0.22,
+            0.28,
+            1.8,
+            mats.wood,
+            8
+        );
+
+    trunk.position.y =
+        0.9;
+
+    group.add(trunk);
+
+
+    const snowBase =
+        cylinder(
+            0.85,
+            1.05,
+            0.5,
+            mats.snow,
+            8
+        );
+
+    snowBase.position.y =
+        1.75;
+
+    group.add(snowBase);
+
+
+    const green1 =
+        cylinder(
+            0.25,
+            1.0,
+            1.7,
+            mats.green,
+            8
+        );
+
+    green1.position.y =
+        2.4;
+
+    group.add(green1);
+
+
+    const green2 =
+        cylinder(
+            0.15,
+            0.78,
+            1.45,
+            mats.green,
+            8
+        );
+
+    green2.position.y =
+        3.35;
+
+    group.add(green2);
+
+
+    const green3 =
+        cylinder(
+            0.05,
+            0.58,
+            1.2,
+            mats.green,
+            8
+        );
+
+    green3.position.y =
+        4.2;
+
+    group.add(green3);
+
+
+    const topSnow =
+        cylinder(
+            0.03,
+            0.65,
+            0.22,
+            mats.snow,
+            8
+        );
+
+    topSnow.position.y =
+        4.72;
+
+    group.add(topSnow);
+
+
+    group.position.set(
+        x,
+        y,
+        z
+    );
+
+    group.scale.setScalar(
+        scale
+    );
+
+    scene.add(group);
+
+    trees.push(group);
+
+    return group;
+}
+
+
+/* =========================================================
+   DECORATION
+   ========================================================= */
+
+function createSnowMountain(x, y, z, scaleX, scaleY, scaleZ) {
+
+    const mountain =
+        new THREE.Mesh(
+            new THREE.ConeGeometry(1, 2, 7),
+            mats.snow
+        );
+
+    mountain.position.set(x, y, z);
+    mountain.scale.set(scaleX, scaleY, scaleZ);
+    mountain.rotation.y = Math.random() * Math.PI;
+
+    mountain.castShadow = true;
+    mountain.receiveShadow = true;
+
+    scene.add(mountain);
+}
+
+
+/* ÐÐÐÐ¬ÐÐÐ Ð¡ÐÐÐÐÐ«Ð ÐÐÐ Ð« */
+
+createSnowMountain(-13, 6, -35, 7, 7, 5);
+createSnowMountain(13, 7, -45, 8, 8, 6);
+createSnowMountain(-14, 8, -60, 9, 9, 7);
+createSnowMountain(14, 9, -78, 10, 10, 8);
+createSnowMountain(-15, 10, -98, 11, 11, 9);
+createSnowMountain(15, 11, -120, 12, 12, 10);
+createSnowMountain(-16, 12, -143, 13, 13, 11);
+
+
+/* ÐÐÐÐ */
+
+createTree(-7, 0, 0, 1.15);
+createTree(7, 0, -3, 1.2);
+createTree(-7, 0, -8, 1.05);
+createTree(8, 1, -14, 1.3);
+createTree(-8, 1, -20, 1.15);
+createTree(8, 2, -27, 1.25);
+createTree(-8, 3, -34, 1.35);
+createTree(8, 3, -41, 1.2);
+createTree(-8, 4, -49, 1.25);
+createTree(8, 4, -57, 1.3);
+createTree(-8, 5, -66, 1.15);
+createTree(8, 6, -74, 1.35);
+createTree(-8, 6, -82, 1.25);
+createTree(8, 7, -90, 1.35);
+createTree(-8, 8, -99, 1.3);
+createTree(8, 9, -108, 1.4);
+createTree(-8, 10, -118, 1.3);
+createTree(8, 11, -128, 1.45);
+createTree(-8, 12, -138, 1.35);
+createTree(8, 13, -147, 1.5);
+
+
+/* Ð¡ÐÐÐÐÐ«Ð Ð¥ÐÐÐÐ« ÐÐ ÐÐÐÐÐ */
+
+function createSnowHill(x, y, z, scale) {
+
+    const hill =
+        new THREE.Mesh(
+            new THREE.DodecahedronGeometry(1, 0),
+            mats.snow
+        );
+
+    hill.position.set(x, y, z);
+    hill.scale.set(scale * 1.6, scale, scale * 1.8);
+    hill.rotation.y = Math.random() * Math.PI;
+
+    hill.castShadow = true;
+    hill.receiveShadow = true;
+
+    scene.add(hill);
+}
+
+createSnowHill(-9, 1.5, -12, 2.2);
+createSnowHill(-10, 2.5, -25, 2.8);
+createSnowHill(-10, 3.5, -39, 3.0);
+createSnowHill(-11, 4.5, -54, 3.2);
+createSnowHill(-11, 5.5, -70, 3.5);
+createSnowHill(-12, 7, -88, 4.0);
+createSnowHill(-12, 8, -108, 4.5);
+createSnowHill(-13, 10, -130, 5.0);
+
+createSnowHill(9, 1.5, -18, 2.4);
+createSnowHill(10, 2.5, -31, 2.8);
+createSnowHill(10, 3.5, -46, 3.1);
+createSnowHill(11, 4.5, -62, 3.4);
+createSnowHill(11, 6, -79, 3.8);
+createSnowHill(12, 7, -97, 4.2);
+createSnowHill(12, 9, -117, 4.7);
+createSnowHill(13, 10, -139, 5.2);
+
+
+/* =========================================================
+   SNOW PARTICLES
+   ========================================================= */
+
+const snowParticleCount = 700;
+
+const snowPositions =
+    new Float32Array(
+        snowParticleCount * 3
+    );
+
+for (
+    let i = 0;
+    i < snowParticleCount;
+    i++
+) {
+
+    snowPositions[i * 3] =
+        (Math.random() - 0.5) * 45;
+
+    snowPositions[i * 3 + 1] =
+        Math.random() * 25 + 2;
+
+    snowPositions[i * 3 + 2] =
+        -Math.random() * 100 + 15;
+}
+
+const snowGeometry =
+    new THREE.BufferGeometry();
+
+snowGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(
+        snowPositions,
+        3
+    )
+);
+
+const snowMaterial =
+    new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.12,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false
+    });
+
+const snowParticles =
+    new THREE.Points(
+        snowGeometry,
+        snowMaterial
+    );
+
+scene.add(
+    snowParticles
+);
+
+
+/* =========================================================
+   PLAYER
+   ========================================================= */
+
+const player =
+    new THREE.Group();
+
+player.position.set(
+    0,
+    1.25,
+    START_Z
+);
+
+scene.add(player);
+
+
+/* BODY */
+
+const body =
+    box(
+        0.72,
+        0.95,
+        0.5,
+        mats.blue
+    );
+
+body.position.y =
+    0;
+
+player.add(body);
+
+
+/* COAT */
+
+const coat =
+    box(
+        0.82,
+        0.55,
+        0.56,
+        mats.dark
+    );
+
+coat.position.y =
+    0.08;
+
+player.add(coat);
+
+
+/* HEAD */
+
+const head =
+    new THREE.Mesh(
+        new THREE.BoxGeometry(
+            0.62,
+            0.62,
+            0.62
+        ),
+        mats.white
+    );
+
+head.position.y =
+    0.82;
+
+head.castShadow = true;
+
+player.add(head);
+
+
+/* FACE */
+
+const face =
+    new THREE.Mesh(
+        new THREE.BoxGeometry(
+            0.42,
+            0.16,
+            0.04
+        ),
+        mats.red
+    );
+
+face.position.set(
+    0,
+    0.82,
+    -0.32
+);
+
+player.add(face);
+
+
+/* HAT */
+
+const hatBase =
+    cylinder(
+        0.39,
+        0.43,
+        0.16,
+        mats.red,
+        16
+    );
+
+hatBase.position.y =
+    1.18;
+
+player.add(hatBase);
+
+
+const hatTop =
+    cylinder(
+        0.20,
+        0.32,
+        0.38,
+        mats.red,
+        16
+    );
+
+hatTop.position.y =
+    1.42;
+
+hatTop.rotation.z =
+    -0.08;
+
+player.add(hatTop);
+
+
+const hatPom =
+    new THREE.Mesh(
+        new THREE.SphereGeometry(
+            0.13,
+            12,
+            12
+        ),
+        mats.white
+    );
+
+hatPom.position.set(
+    -0.05,
+    1.64,
+    0
+);
+
+hatPom.castShadow = true;
+
+player.add(hatPom);
+
+    
+/* ARMS */
+
+const leftArmPivot =
+    new THREE.Group();
+
+leftArmPivot.position.set(
+    -0.55,
+    0.32,
+    0
+);
+
+player.add(leftArmPivot);
+
+
+const leftArm =
+    box(
+        0.22,
+        0.75,
+        0.25,
+        mats.blue
+    );
+
+leftArm.position.set(
+    0,
+    -0.37,
+    0
+);
+
+leftArmPivot.add(leftArm);
+
+
+const rightArmPivot =
+    new THREE.Group();
+
+rightArmPivot.position.set(
+    0.55,
+    0.32,
+    0
+);
+
+player.add(rightArmPivot);
+
+
+const rightArm =
+    box(
+        0.22,
+        0.75,
+        0.25,
+        mats.blue
+    );
+
+rightArm.position.set(
+    0,
+    -0.37,
+    0
+);
+
+rightArmPivot.add(rightArm);
+
+
+/* LEGS */
+
+const leftLegPivot =
+    new THREE.Group();
+
+leftLegPivot.position.set(
+    -0.22,
+    -0.38,
+    0
+);
+
+player.add(leftLegPivot);
+
+
+const leftLeg =
+    box(
+        0.28,
+        0.72,
+        0.3,
+        mats.dark
+    );
+
+leftLeg.position.set(
+    0,
+    -0.36,
+    0
+);
+
+leftLegPivot.add(leftLeg);
+
+
+const leftBoot =
+    box(
+        0.32,
+        0.22,
+        0.42,
+        mats.black
+    );
+
+leftBoot.position.set(
+    0,
+    -0.74,
+    -0.04
+);
+
+leftLegPivot.add(leftBoot);
+
+
+const rightLegPivot =
+    new THREE.Group();
+
+rightLegPivot.position.set(
+    0.22,
+    -0.38,
+    0
+);
+
+player.add(rightLegPivot);
+
+
+const rightLeg =
+    box(
+        0.28,
+        0.72,
+        0.3,
+        mats.dark
+    );
+
+rightLeg.position.set(
+    0,
+    -0.36,
+    0
+);
+
+rightLegPivot.add(rightLeg);
+
+
+const rightBoot =
+    box(
+        0.32,
+        0.22,
+        0.42,
+        mats.black
+    );
+
+rightBoot.position.set(
+    0,
+    -0.74,
+    -0.04
+);
+
+rightLegPivot.add(rightBoot);
+
+/* =========================================================
+   Ð¡ÐÐÐÐÐ«Ð ÐÐÐ
+   ========================================================= */
+
+const floorMaterial = new THREE.MeshStandardMaterial({
+    color: 0xeaf7ff,
+    roughness: 0.92,
+    metalness: 0.02
+});
+
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(36, 10000),
+    floorMaterial
+);
+
+floor.rotation.x = -Math.PI / 2;
+floor.position.set(0, -0.48, -5000);
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* =========================================================
+   PLAYER STATE
+   ========================================================= */
+
+let velocityX = 0;
+let velocityY = 0;
+
+let onGround = false;
+
+let coyoteTimer = 0;
+let jumpBufferTimer = 0;
+
+let gameOver = false;
+let finished = false;
+
+let coinCount = 0;
+
+let animTime = 0;
+
+let previousTime =
+    performance.now();
+
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+
+const keys = {
+    left: false,
+    right: false,
+    jump: false
+};
+
+
+function setKey(
+    key,
+    value
+) {
+
+    keys[key] = value;
+
+    if (
+        key === "jump" &&
+        value
+    ) {
+        jumpBufferTimer =
+            JUMP_BUFFER_TIME;
+    }
+}
+
+
+window.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.code === "ArrowLeft" ||
+            event.code === "KeyA"
+        ) {
+            keys.left = true;
+            event.preventDefault();
+        }
+
+        if (
+            event.code === "ArrowRight" ||
+            event.code === "KeyD"
+        ) {
+            keys.right = true;
+            event.preventDefault();
+        }
+
+        if (
+            event.code === "Space" ||
+            event.code === "ArrowUp" ||
+            event.code === "KeyW"
+        ) {
+            if (!keys.jump) {
+                setKey(
+                    "jump",
+                    true
+                );
+            }
+
+            event.preventDefault();
+        }
+
+        if (
+            event.code === "KeyR" &&
+            gameOver
+        ) {
+            location.reload();
+        }
+    },
+    {
+        passive: false
+    }
+);
+
+
+window.addEventListener(
+    "keyup",
+    function(event) {
+
+        if (
+            event.code === "ArrowLeft" ||
+            event.code === "KeyA"
+        ) {
+            keys.left = false;
+            event.preventDefault();
+        }
+
+        if (
+            event.code === "ArrowRight" ||
+            event.code === "KeyD"
+        ) {
+            keys.right = false;
+            event.preventDefault();
+        }
+
+        if (
+            event.code === "Space" ||
+            event.code === "ArrowUp" ||
+            event.code === "KeyW"
+        ) {
+            keys.jump = false;
+            event.preventDefault();
+        }
+    },
+    {
+        passive: false
+    }
+);
+
+
+/* =========================================================
+   MOBILE CONTROLS
+   ========================================================= */
+
+function holdButton(
+    element,
+    key
+) {
+
+    element.addEventListener(
+        "pointerdown",
+        function(event) {
+
+            event.preventDefault();
+
+            element.setPointerCapture(
+                event.pointerId
+            );
+
+            setKey(
+                key,
+                true
+            );
+        }
+    );
+
+    element.addEventListener(
+        "pointerup",
+        function(event) {
+
+            event.preventDefault();
+
+            setKey(
+                key,
+                false
+            );
+        }
+    );
+
+    element.addEventListener(
+        "pointercancel",
+        function() {
+
+            setKey(
+                key,
+                false
+            );
+        }
+    );
+
+    element.addEventListener(
+        "pointerleave",
+        function(event) {
+
+            if (
+                event.buttons === 0
+            ) {
+                setKey(
+                    key,
+                    false
+                );
+            }
+        }
+    );
+}
+
+
+holdButton(
+    document.getElementById(
+        "leftButton"
+    ),
+    "left"
+);
+
+holdButton(
+    document.getElementById(
+        "rightButton"
+    ),
+    "right"
+);
+
+holdButton(
+    document.getElementById(
+        "jumpButton"
+    ),
+    "jump"
+);
+
+
+/* =========================================================
+   COLLISION HELPERS
+   ========================================================= */
+
+function playerHalfWidth() {
+    return PLAYER_WIDTH / 2;
+}
+
+
+function isInsidePlatformX(
+    p,
+    platformData
+) {
+
+    const half =
+        playerHalfWidth();
+
+    return (
+        p.position.x + half >
+        platformData.x -
+        platformData.width / 2
+        &&
+        p.position.x - half <
+        platformData.x +
+        platformData.width / 2
+    );
+}
+
+
+function isInsidePlatformZ(
+    p,
+    platformData
+) {
+
+    const half =
+        0.35;
+
+    return (
+        p.position.z + half >
+        platformData.z -
+        platformData.depth / 2
+        &&
+        p.position.z - half <
+        platformData.z +
+        platformData.depth / 2
+    );
+}
+
+
+/* =========================================================
+   PLATFORM COLLISION
+   ========================================================= */
+
+function updateGroundCollision() {
+
+    const oldY =
+        player.position.y;
+
+    const bottom =
+        player.position.y -
+        PLAYER_HEIGHT / 2;
+
+    let landingPlatform = null;
+
+    for (
+        const p of platforms
+    ) {
+
+        if (
+            !isInsidePlatformX(
+                player,
+                p
+            )
+        ) {
+            continue;
+        }
+
+        if (
+            !isInsidePlatformZ(
+                player,
+                p
+            )
+        ) {
+            continue;
+        }
+
+        const top =
+            p.top;
+
+        if (
+            velocityY <= 0 &&
+            bottom <= top + 0.35 &&
+            bottom >= top - 1.0
+        ) {
+
+            landingPlatform = p;
+            break;
+        }
+    }
+
+    if (landingPlatform) {
+
+        player.position.y =
+            landingPlatform.top +
+            PLAYER_HEIGHT / 2;
+
+        velocityY = 0;
+
+        onGround = true;
+
+        coyoteTimer =
+            COYOTE_TIME;
+
+    } else {
+
+        onGround = false;
+
+        if (
+            oldY >
+            player.position.y
+        ) {
+            coyoteTimer = 0;
+        }
+    }
+}
+
+
+/* =========================================================
+   HAZARD COLLISION
+   ========================================================= */
+
+function checkHazards() {
+
+    const px =
+        player.position.x;
+
+    const py =
+        player.position.y;
+
+    const pz =
+        player.position.z;
+
+    for (
+        const h of hazards
+    ) {
+
+        const hx =
+            h.x;
+
+        const hy =
+            h.y;
+
+        const hz =
+            h.z;
+
+        const hitX =
+            Math.abs(px - hx) <
+            (PLAYER_WIDTH / 2 +
+             h.width / 2);
+
+        const hitY =
+            Math.abs(py - hy) <
+            (PLAYER_HEIGHT / 2 +
+             h.height / 2);
+
+        const hitZ =
+            Math.abs(pz - hz) <
+            (0.45 +
+             h.depth / 2);
+
+        if (
+            hitX &&
+            hitY &&
+            hitZ
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/* =========================================================
+   COIN COLLECTION
+   ========================================================= */
+
+function updateCoins(
+    time
+) {
+
+    for (
+        const coin of coins
+    ) {
+
+        if (
+            coin.collected
+        ) {
+            continue;
+        }
+
+        coin.mesh.rotation.y +=
+            3.2 * time;
+
+        coin.mesh.rotation.z +=
+            1.1 * time;
+
+        coin.mesh.position.y =
+            coin.baseY +
+            Math.sin(
+                animTime * 3 +
+                coin.phase
+            ) * 0.14;
+
+        const dx =
+            player.position.x -
+            coin.mesh.position.x;
+
+        const dy =
+            player.position.y -
+            coin.mesh.position.y;
+
+        const dz =
+            player.position.z -
+            coin.mesh.position.z;
+
+        const distance =
+            Math.sqrt(
+                dx * dx +
+                dy * dy +
+                dz * dz
+            );
+
+        if (
+            distance < 2.2
+        ) {
+
+            coin.collected = true;
+
+            coin.mesh.visible = false;
+
+            coinCount++;
+
+            updateUI();
+        }
+    }
+}
+
+
+/* =========================================================
+   PLAYER ANIMATION
+   ========================================================= */
+function updatePlayerAnimation(
+    dt
+) {
+
+    animTime += dt;
+
+    const horizontalSpeed =
+        Math.abs(velocityX);
+
+    const running =
+        onGround &&
+        horizontalSpeed > 0.15;
+
+
+    if (running) {
+
+        const swing =
+            Math.sin(
+                animTime * 10
+            ) * 0.48;
+
+        const armSwing =
+            Math.sin(
+                animTime * 10
+            ) * 0.34;
+
+
+        leftLegPivot.rotation.x =
+            THREE.MathUtils.damp(
+                leftLegPivot.rotation.x,
+                swing,
+                14,
+                dt
+            );
+
+        rightLegPivot.rotation.x =
+            THREE.MathUtils.damp(
+                rightLegPivot.rotation.x,
+                -swing,
+                14,
+                dt
+            );
+
+
+        leftArmPivot.rotation.x =
+            THREE.MathUtils.damp(
+                leftArmPivot.rotation.x,
+                -armSwing,
+                14,
+                dt
+            );
+
+        rightArmPivot.rotation.x =
+            THREE.MathUtils.damp(
+                rightArmPivot.rotation.x,
+                armSwing,
+                14,
+                dt
+            );
+
+    } else if (onGround) {
+
+        leftLegPivot.rotation.x =
+            THREE.MathUtils.damp(
+                leftLegPivot.rotation.x,
+                0,
+                12,
+                dt
+            );
+
+        rightLegPivot.rotation.x =
+            THREE.MathUtils.damp(
+                rightLegPivot.rotation.x,
+                0,
+                12,
+                dt
+            );
+
+        leftArmPivot.rotation.x =
+            THREE.MathUtils.damp(
+                leftArmPivot.rotation.x,
+                0,
+                12,
+                dt
+            );
+
+        rightArmPivot.rotation.x =
+            THREE.MathUtils.damp(
+                rightArmPivot.rotation.x,
+                0,
+                12,
+                dt
+            );
+
+    } else {
+
+        /* JUMP */
+
+        leftArmPivot.rotation.x =
+            THREE.MathUtils.damp(
+                leftArmPivot.rotation.x,
+                -0.7,
+                10,
+                dt
+            );
+
+        rightArmPivot.rotation.x =
+            THREE.MathUtils.damp(
+                rightArmPivot.rotation.x,
+                -0.7,
+                10,
+                dt
+            );
+
+        leftLegPivot.rotation.x =
+            THREE.MathUtils.damp(
+                leftLegPivot.rotation.x,
+                0.25,
+                10,
+                dt
+            );
+
+        rightLegPivot.rotation.x =
+            THREE.MathUtils.damp(
+                rightLegPivot.rotation.x,
+                -0.25,
+                10,
+                dt
+            );
+    }
+
+
+    /* BODY LEAN */
+
+    const targetTilt =
+        THREE.MathUtils.clamp(
+            -velocityX * 0.045,
+            -0.28,
+            0.28
+        );
+
+    player.rotation.z =
+        THREE.MathUtils.damp(
+            player.rotation.z,
+            targetTilt,
+            9,
+            dt
+        );
+
+
+    /* SMALL BODY BOUNCE */
+
+    const targetBodyY =
+        running
+            ? Math.abs(
+                Math.sin(
+                    animTime * 10
+                )
+            ) * 0.045
+            : 0;
+
+    body.position.y =
+        THREE.MathUtils.damp(
+            body.position.y,
+            targetBodyY,
+            12,
+            dt
+        );
+}
+
+/* =========================================================
+   PLAYER MOVEMENT
+   ========================================================= */
+
+function updatePlayer(
+    dt
+) {
+
+    if (
+        gameOver ||
+        finished
+    ) {
+        return;
+    }
+
+    /* AUTO FORWARD â ÑÐºÐ¾ÑÐ¾ÑÑÑ Ð¿Ð¾ÑÑÐµÐ¿ÐµÐ½Ð½Ð¾ ÑÐ°ÑÑÑÑ */
+
+    player.position.z -=
+        getRunSpeed() * dt;
+
+
+    /* HORIZONTAL INPUT */
+
+    let direction = 0;
+
+    if (keys.left) {
+        direction -= 1;
+    }
+
+    if (keys.right) {
+        direction += 1;
+    }
+
+
+    /* SMOOTH ACCELERATION */
+
+    if (direction !== 0) {
+
+        const target =
+            direction *
+            SIDE_SPEED;
+
+        velocityX =
+            THREE.MathUtils.damp(
+                velocityX,
+                target,
+                SIDE_ACCEL,
+                dt
+            );
+
+    } else {
+
+        velocityX =
+            THREE.MathUtils.damp(
+                velocityX,
+                0,
+                SIDE_FRICTION,
+                dt
+            );
+    }
+
+
+    player.position.x +=
+        velocityX * dt;
+
+
+    player.position.x =
+        THREE.MathUtils.clamp(
+            player.position.x,
+            -WORLD_LIMIT_X,
+            WORLD_LIMIT_X
+        );
+
+
+    /* COYOTE TIME */
+
+    if (
+        !onGround &&
+        coyoteTimer > 0
+    ) {
+        coyoteTimer -= dt;
+    }
+
+
+    /* JUMP BUFFER */
+
+    if (
+        jumpBufferTimer > 0
+    ) {
+        jumpBufferTimer -= dt;
+    }
+
+
+    /* JUMP */
+
+    if (
+        jumpBufferTimer > 0 &&
+        (
+            onGround ||
+            coyoteTimer > 0
+        )
+    ) {
+
+        velocityY =
+            JUMP_FORCE;
+
+        onGround = false;
+
+        coyoteTimer = 0;
+
+        jumpBufferTimer = 0;
+    }
+
+
+    /* GRAVITY */
+
+    velocityY -=
+        GRAVITY * dt;
+
+
+    /* SHORT JUMP */
+
+    if (
+        !keys.jump &&
+        velocityY > 0
+    ) {
+
+        velocityY -=
+            GRAVITY * 0.65 * dt;
+    }
+
+
+    player.position.y +=
+        velocityY * dt;
+
+
+    updateGroundCollision();
+
+
+    /* FALL */
+
+    if (
+        player.position.y < -8
+    ) {
+
+        showGameOver(
+            "Ð¢Ñ ÑÐ¿Ð°Ð»!"
+        );
+
+        return;
+    }
+
+
+    /* HAZARDS */
+
+    if (
+        checkHazards()
+    ) {
+
+        showGameOver(
+            "ÐÐ¹! ÐÑÐµÐ¿ÑÑÑÑÐ²Ð¸Ðµ!"
+        );
+
+        return;
+    }
+
+
+    /* ÐÐÐ¡ÐÐÐÐÐ§ÐÐÐ¯ Ð¢Ð ÐÐ¡Ð¡Ð */
+
+    ensureInfiniteWorld();
+}
+
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+
+function updateCamera(
+    dt
+) {
+
+    const targetX =
+        player.position.x * 0.38;
+
+    const targetY =
+        player.position.y + 5.2;
+
+    const targetZ =
+        player.position.z + 10.5;
+
+    camera.position.x =
+        THREE.MathUtils.damp(
+            camera.position.x,
+            targetX,
+            5.5,
+            dt
+        );
+
+    camera.position.y =
+        THREE.MathUtils.damp(
+            camera.position.y,
+            targetY,
+            5.5,
+            dt
+        );
+
+    camera.position.z =
+        THREE.MathUtils.damp(
+            camera.position.z,
+            targetZ,
+            7,
+            dt
+        );
+
+    const lookTarget =
+        new THREE.Vector3(
+            player.position.x * 0.35,
+            player.position.y + 0.6,
+            player.position.z - 8
+        );
+
+    camera.lookAt(
+        lookTarget
+    );
+}
+
+
+/* =========================================================
+   SNOW ANIMATION
+   ========================================================= */
+
+function updateSnow(
+    dt
+) {
+
+    const position =
+        snowParticles.geometry
+            .attributes
+            .position;
+
+    for (
+        let i = 0;
+        i < snowParticleCount;
+        i++
+    ) {
+
+        let x =
+            position.array[i * 3];
+
+        let y =
+            position.array[i * 3 + 1];
+
+        let z =
+            position.array[i * 3 + 2];
+
+        y -=
+            dt * 1.8;
+
+        z +=
+            getRunSpeed() * dt * 0.25;
+
+        x +=
+            Math.sin(
+                animTime * 0.8 +
+                i
+            ) * dt * 0.15;
+
+        if (
+            y < 0
+        ) {
+            y = 27;
+        }
+
+        if (
+            z > player.position.z + 18
+        ) {
+            z =
+                player.position.z - 100;
+        }
+
+        position.array[i * 3] =
+            x;
+
+        position.array[i * 3 + 1] =
+            y;
+
+        position.array[i * 3 + 2] =
+            z;
+    }
+
+    position.needsUpdate = true;
+}
+
+
+/* =========================================================
+   UI
+   ========================================================= */
+
+function updateUI() {
+
+    document.getElementById(
+        "coinsUI"
+    ).textContent =
+        "âï¸ ÐÐ¾Ð½ÐµÑÑ: " +
+        coinCount;
+
+    const distance =
+        Math.max(
+            0,
+            Math.round(
+                START_Z -
+                player.position.z
+            )
+        );
+
+    document.getElementById(
+        "distanceUI"
+    ).textContent =
+        "ÐÐ¸ÑÑÐ°Ð½ÑÐ¸Ñ: " +
+        distance +
+        " Ð¼";
+
+    const level =
+        currentLevel();
+
+    document.getElementById(
+        "levelUI"
+    ).textContent =
+        "Ð£ÑÐ¾Ð²ÐµÐ½Ñ: " +
+        level;
+}
+
+
+/* =========================================================
+   GAME OVER
+   ========================================================= */
+
+function showGameOver(
+    text
+) {
+
+    if (
+        gameOver
+    ) {
+        return;
+    }
+
+    gameOver = true;
+
+    document.getElementById(
+        "messageTitle"
+    ).textContent =
+        "ÐÐ³ÑÐ° Ð¾ÐºÐ¾Ð½ÑÐµÐ½Ð°";
+
+    document.getElementById(
+        "messageText"
+    ).textContent =
+        text +
+        " ÐÐ¸ÑÑÐ°Ð½ÑÐ¸Ñ: " +
+        Math.max(
+            0,
+            Math.round(
+                START_Z -
+                player.position.z
+            )
+        ) +
+        " Ð¼ â¢ ÐÐ¾Ð½ÐµÑÑ: " +
+        coinCount;
+
+    document.getElementById(
+        "message"
+    ).classList.add(
+        "show"
+    );
+}
+
+
+/* =========================================================
+   FINISH
+   ========================================================= */
+
+function finishGame() {
+
+    if (
+        finished
+    ) {
+        return;
+    }
+
+    finished = true;
+
+    document.getElementById(
+        "messageTitle"
+    ).textContent =
+        "ð Ð¤Ð¸Ð½Ð¸Ñ!";
+
+    document.getElementById(
+        "messageText"
+    ).textContent =
+        "Ð¢Ñ Ð¿ÑÐ¾ÑÑÐ» Ð·Ð¸Ð¼Ð½Ð¸Ð¹ Ð¿Ð°ÑÐºÑÑ Ð¸ ÑÐ¾Ð±ÑÐ°Ð» " +
+        coinCount +
+        " Ð¸Ð· " +
+        coins.length +
+        " Ð¼Ð¾Ð½ÐµÑ.";
+
+    document.getElementById(
+        "message"
+    ).classList.add(
+        "show"
+    );
+}
+
+
+/* =========================================================
+   RESTART
+   ========================================================= */
+
+document.getElementById(
+    "restartButton"
+).addEventListener(
+    "click",
+    function() {
+
+        location.reload();
+    }
+);
+
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+
+window.addEventListener(
+    "resize",
+    function() {
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
+    }
+);
+
+
+/* =========================================================
+   INITIAL CAMERA
+   ========================================================= */
+
+camera.position.set(
+    0,
+    5.2,
+    13
+);
+
+camera.lookAt(
+    0,
+    1,
+    -5
+);
+
+
+/* =========================================================
+   GAME LOOP
+   ========================================================= */
+
+function animate(
+    currentTime
+) {
+
+    requestAnimationFrame(
+        animate
+    );
+
+    let dt =
+        (currentTime -
+         previousTime) /
+        1000;
+
+    previousTime =
+        currentTime;
+
+    dt =
+        Math.min(
+            dt,
+            0.033
+        );
+
+
+    ensureInfiniteWorld();
+
+    updatePlayer(
+        dt
+    );
+
+    updateCamera(
+        dt
+    );
+
+    updateCoins(
+        dt
+    );
+
+    updatePlayerAnimation(
+        dt
+    );
+
+    updateSnow(
+        dt
+    );
+
+    updateUI();
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+updateUI();
+
+requestAnimationFrame(
+    animate
+);
+
+</script>
+
+</body>
+</html>
