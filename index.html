@@ -975,6 +975,7 @@ const platforms = [];
 const hazards = [];
 const coins = [];
 const trees = [];
+const mountains = [];
 
 
 /* =========================================================
@@ -1416,11 +1417,14 @@ function createTree(
    DECORATION
    ========================================================= */
 
+const mountainGeometry =
+    new THREE.ConeGeometry(1, 2, 7);
+
 function createSnowMountain(x, y, z, scaleX, scaleY, scaleZ) {
 
     const mountain =
         new THREE.Mesh(
-            new THREE.ConeGeometry(1, 2, 7),
+            mountainGeometry,
             mats.snow
         );
 
@@ -1432,6 +1436,16 @@ function createSnowMountain(x, y, z, scaleX, scaleY, scaleZ) {
     mountain.receiveShadow = false;
 
     scene.add(mountain);
+    return mountain;
+}
+
+function createDynamicMountain(x, y, z, scale) {
+    return createSnowMountain(
+        x, y, z,
+        scale,
+        scale * (0.9 + Math.random() * 0.18),
+        scale * (0.72 + Math.random() * 0.2)
+    );
 }
 
 
@@ -1980,13 +1994,21 @@ function cleanupInfiniteWorld() {
             trees.splice(i, 1);
         }
     }
+
+    for (let i = mountains.length - 1; i >= 0; i--) {
+        const mountain = mountains[i];
+        if (mountain.position.z > limit) {
+            removeInfiniteObject(mountain);
+            mountains.splice(i, 1);
+        }
+    }
 }
 
 function generateInfiniteChunk() {
     const level = currentLevel();
 
     const gap =
-        8.0 + Math.random() * 1.2;
+        10.6 + Math.random() * 1.2;
 
     nextGeneratedZ -= gap;
 
@@ -2007,7 +2029,7 @@ function generateInfiniteChunk() {
     );
 
     const width = Math.max(5.2, 7.3 - Math.min(level, 15) * 0.10 - Math.random() * 0.9);
-    const depth = 6.9 + Math.random() * 0.9;
+    const depth = 6.0 + Math.random() * 0.8;
 
     const roll = Math.random();
     const material =
@@ -2065,7 +2087,7 @@ function generateInfiniteChunk() {
         hazards[hazards.length - 1].dynamic = true;
     }
 
-    if (Math.random() < 0.45) {
+    if (Math.random() < 0.38) {
         const side = Math.random() < 0.5 ? -1 : 1;
         const tree = createTree(
             side * (7 + Math.random() * 2.5),
@@ -2075,6 +2097,19 @@ function generateInfiniteChunk() {
         );
 
         tree.userData.dynamic = true;
+    }
+
+    // Дальние горы продолжаются бесконечно вместе с трассой.
+    // Создаём их реже, чтобы сохранить FPS.
+    if (Math.random() < 0.72) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const mountain = createDynamicMountain(
+            side * (13.5 + Math.random() * 3.5),
+            Math.max(4, generatedY * 0.45 + 4),
+            nextGeneratedZ - 4 - Math.random() * 5,
+            7.5 + Math.random() * 5.0
+        );
+        mountains.push(mountain);
     }
 }
 
