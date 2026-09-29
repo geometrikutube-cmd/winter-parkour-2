@@ -42,7 +42,7 @@ canvas {
     top: 0;
     left: 0;
     width: 100%;
-    padding: 14px;
+    padding: 10px;
     z-index: 20;
     pointer-events: none;
 }
@@ -55,8 +55,8 @@ canvas {
 }
 
 .uiBox {
-    padding: 10px 14px;
-    border-radius: 16px;
+    padding: 7px 10px;
+    border-radius: 12px;
     color: white;
     background: rgba(5, 15, 27, 0.68);
     border: 1px solid rgba(255,255,255,0.2);
@@ -313,11 +313,87 @@ canvas {
     }
 }
 
+
+#ui, #help, #controls, #message {
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+#ui.lobbyHidden, #help.lobbyHidden, #controls.lobbyHidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#lobby {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 28%, rgba(210,244,255,0.16), rgba(5,18,34,0.72) 70%);
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+#lobby.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+#lobbyCard {
+    position: relative;
+    width: min(92vw, 620px);
+    padding: 28px 24px 30px;
+    text-align: center;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.38);
+    border-radius: 30px;
+    background: linear-gradient(145deg, rgba(9,30,50,0.72), rgba(20,67,92,0.54));
+    box-shadow: 0 24px 80px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.22);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+#lobbyEyebrow { font-size: 13px; letter-spacing: 4px; opacity: 0.8; font-weight: 800; }
+#lobbyTitle { margin: 8px 0 5px; font-size: clamp(38px, 8vw, 70px); line-height: 0.95; font-weight: 1000; letter-spacing: 2px; text-shadow: 0 5px 0 rgba(20,90,120,0.7), 0 14px 30px rgba(0,0,0,0.35); }
+#lobbySub { margin: 0 0 22px; font-size: clamp(14px, 2.7vw, 19px); opacity: 0.88; }
+
+#startGameButton {
+    border: 0;
+    min-width: 230px;
+    padding: 15px 28px;
+    border-radius: 999px;
+    color: #06233a;
+    background: linear-gradient(180deg, #fffef1, #b9f2ff);
+    font-size: 18px;
+    font-weight: 1000;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 10px 0 rgba(42,130,163,0.5), 0 18px 35px rgba(0,0,0,0.3);
+    transform: translateY(0);
+}
+#startGameButton:active { transform: translateY(5px); box-shadow: 0 5px 0 rgba(42,130,163,0.5), 0 10px 20px rgba(0,0,0,0.25); }
+
+#lobbyMusicHint { margin-top: 16px; font-size: 12px; opacity: 0.62; }
+
+@media (max-width: 700px) {
+    #lobbyCard { padding: 24px 16px 26px; border-radius: 24px; }
+    #startGameButton { width: 100%; }
+}
+
 </style>
 
 </head>
 
 <body>
+
+<div id="lobby" aria-label="Главное меню">
+    <div id="lobbyCard">
+        <div id="lobbyEyebrow">❄️ ЗИМНЕЕ ПРИКЛЮЧЕНИЕ ❄️</div>
+        <div id="lobbyTitle">WINTER<br>PARKOUR</div>
+        <div id="lobbySub">Собирай монеты, скользи по снегу и не попадай на ледяные шипы!</div>
+        <button id="startGameButton" type="button">▶ НАЧАТЬ ИГРАТЬ</button>
+        <div id="lobbyMusicHint">🎵 Весёлая зимняя музыка включится после старта</div>
+    </div>
+</div>
 
 <div id="ui">
     <div id="top">
@@ -363,40 +439,158 @@ canvas {
 "use strict";
 
 /* =========================================================
-   MUSIC
+   MUSIC — ORIGINAL WINTER DANCE LOOP
+   ---------------------------------------------------------
+   Inspired by a bright winter/electro-pop atmosphere.
+   This is an original melody, not a copy of any song.
    ========================================================= */
 
-let musicEnabled =
-    localStorage.getItem("winterParkourMusic") === "on";
+let musicEnabled = localStorage.getItem("winterParkourMusic") !== "off";
+let lobbyMusicTimer = null;
+let lobbyMusicStep = 0;
+let lobbyActive = true;
 let audioContext = null;
 let musicTimer = null;
 let musicStep = 0;
+let musicNextChord = 0;
 
-const melody = [
-    523.25, 659.25, 783.99, 659.25,
-    587.33, 698.46, 880.00, 698.46,
-    523.25, 659.25, 783.99, 1046.50,
-    880.00, 783.99, 659.25, 523.25
+/* Original 16-step winter lead: sparkling, upbeat and icy. */
+const winterLead = [
+    659.25, 783.99, 880.00, 783.99,
+    698.46, 783.99, 987.77, 880.00,
+    659.25, 783.99, 1046.50, 987.77,
+    880.00, 783.99, 698.46, 659.25
 ];
 
-function playMusicNote() {
+const winterBass = [
+    220.00, 220.00, 196.00, 196.00,
+    174.61, 174.61, 196.00, 196.00,
+    220.00, 220.00, 196.00, 196.00,
+    174.61, 174.61, 196.00, 220.00
+];
+
+const winterChords = [
+    [261.63, 329.63, 392.00],
+    [220.00, 261.63, 329.63],
+    [174.61, 220.00, 261.63],
+    [196.00, 246.94, 293.66]
+];
+
+function winterTone(freq, duration, type, volume, when, filterFreq = 2600) {
     if (!audioContext || !musicEnabled) return;
 
-    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, when);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(filterFreq, when);
+    filter.Q.value = 0.7;
+
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(volume, when + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(when);
+    osc.stop(when + duration + 0.03);
+}
+
+function winterBell(freq, when) {
+    if (!audioContext || !musicEnabled) return;
+
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, when);
+
+    filter.type = "highpass";
+    filter.frequency.setValueAtTime(700, when);
+
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.075, when + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.34);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(when);
+    osc.stop(when + 0.38);
+}
+
+function winterKick(when) {
+    if (!audioContext || !musicEnabled) return;
+
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
 
-    osc.type = "triangle";
-    osc.frequency.value = melody[musicStep % melody.length];
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(125, when);
+    osc.frequency.exponentialRampToValueAtTime(48, when + 0.12);
 
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.045, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.13, when + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
 
     osc.connect(gain);
     gain.connect(audioContext.destination);
-    osc.start(now);
-    osc.stop(now + 0.24);
+    osc.start(when);
+    osc.stop(when + 0.16);
+}
+
+function playMusicStep() {
+    if (!audioContext || !musicEnabled) return;
+
+    const now = audioContext.currentTime;
+    const step = musicStep % 16;
+
+    /* Bright lead. */
+    winterTone(
+        winterLead[step],
+        0.19,
+        "triangle",
+        0.045,
+        now,
+        3600
+    );
+
+    /* Warm bass underneath the lead. */
+    winterTone(
+        winterBass[step],
+        0.24,
+        "sine",
+        0.07,
+        now,
+        900
+    );
+
+    /* Four soft chord changes per loop. */
+    if (step % 4 === 0) {
+        const chord = winterChords[musicNextChord % winterChords.length];
+        for (const note of chord) {
+            winterTone(note, 0.82, "sine", 0.018, now, 1800);
+        }
+        musicNextChord++;
+    }
+
+    /* Dance pulse. */
+    if (step % 4 === 0 || step % 4 === 2) {
+        winterKick(now);
+    }
+
+    /* Tiny icy bell accents. */
+    if (step === 3 || step === 7 || step === 11 || step === 15) {
+        winterBell(winterLead[step] * 2, now);
+    }
 
     musicStep++;
 }
@@ -412,8 +606,12 @@ function startMusic() {
 
     if (musicTimer) return;
 
-    playMusicNote();
-    musicTimer = setInterval(playMusicNote, 260);
+    musicStep = 0;
+    musicNextChord = 0;
+    playMusicStep();
+
+    /* 16th-note pulse at about 120 BPM. */
+    musicTimer = setInterval(playMusicStep, 125);
 }
 
 function stopMusic() {
@@ -423,10 +621,39 @@ function stopMusic() {
     }
 }
 
+function playLobbyStep() {
+    if (!audioContext || !musicEnabled) return;
+    const now = audioContext.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50, 880.00, 783.99, 659.25, 987.77];
+    const note = notes[lobbyMusicStep % notes.length];
+    winterTone(note, 0.22, "triangle", 0.055, now, 4200);
+    if (lobbyMusicStep % 2 === 0) winterBell(note * 2, now);
+    if (lobbyMusicStep % 4 === 0) winterTone(note / 2, 0.45, "sine", 0.035, now, 1100);
+    lobbyMusicStep++;
+}
+
+function startLobbyMusic() {
+    if (!audioContext || !musicEnabled || lobbyMusicTimer) return;
+    lobbyMusicStep = 0;
+    playLobbyStep();
+    lobbyMusicTimer = setInterval(playLobbyStep, 210);
+}
+
+function stopLobbyMusic() {
+    if (lobbyMusicTimer) {
+        clearInterval(lobbyMusicTimer);
+        lobbyMusicTimer = null;
+    }
+}
+
+function switchToGameMusic() {
+    stopLobbyMusic();
+    if (musicEnabled) startMusic();
+}
+
 const musicButton = document.getElementById("musicButton");
 
-    musicButton.addEventListener("click", function() {
-
+musicButton.addEventListener("click", function() {
     musicEnabled = !musicEnabled;
 
     localStorage.setItem(
@@ -435,37 +662,24 @@ const musicButton = document.getElementById("musicButton");
     );
 
     if (musicEnabled) {
-
-        musicButton.textContent =
-            "🔊 Музыка";
-
-        startMusic();
-
+        musicButton.textContent = "🔊 Музыка";
+        if (lobbyActive) startLobbyMusic();
+        else startMusic();
     } else {
-
-        musicButton.textContent =
-            "🔇 Музыка";
-
+        musicButton.textContent = "🔇 Музыка";
         stopMusic();
     }
 });
 
-
 if (musicEnabled) {
-
-    musicButton.textContent =
-        "🔊 Музыка";
+    musicButton.textContent = "🔊 Музыка";
 
     document.addEventListener(
         "pointerdown",
         function musicUnlock() {
-
-            startMusic();
-
-            document.removeEventListener(
-                "pointerdown",
-                musicUnlock
-            );
+            if (lobbyActive) startLobbyMusic();
+            else startMusic();
+            document.removeEventListener("pointerdown", musicUnlock);
         },
         { once: true }
     );
@@ -473,13 +687,9 @@ if (musicEnabled) {
     document.addEventListener(
         "keydown",
         function musicKeyUnlock() {
-
-            startMusic();
-
-            document.removeEventListener(
-                "keydown",
-                musicKeyUnlock
-            );
+            if (lobbyActive) startLobbyMusic();
+            else startMusic();
+            document.removeEventListener("keydown", musicKeyUnlock);
         },
         { once: true }
     );
@@ -572,6 +782,57 @@ renderer.outputColorSpace =
 document.body.appendChild(
     renderer.domElement
 );
+
+/* =========================================================
+   3D LOBBY SCENE
+   ========================================================= */
+let lobbyGroup = new THREE.Group();
+lobbyGroup.name = "LobbyShowcase";
+scene.add(lobbyGroup);
+
+const lobbySnowMat = new THREE.MeshStandardMaterial({ color: 0xf4fbff, roughness: 0.88 });
+const lobbyIceMat = new THREE.MeshStandardMaterial({ color: 0x8edcf4, roughness: 0.34, metalness: 0.08 });
+const lobbyBlueMat = new THREE.MeshStandardMaterial({ color: 0x174b70, roughness: 0.7 });
+const lobbyGoldMat = new THREE.MeshStandardMaterial({ color: 0xffd84d, roughness: 0.28, metalness: 0.55 });
+
+function lobbyTree(x, z, scale) {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.23,1.3,7), lobbyBlueMat);
+    trunk.position.y = 0.65; g.add(trunk);
+    for (let i=0;i<3;i++) {
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.95 - i*0.18, 1.35, 8), lobbySnowMat);
+        cone.position.y = 1.35 + i*0.62; g.add(cone);
+    }
+    g.position.set(x,0,z); g.scale.setScalar(scale); lobbyGroup.add(g); return g;
+}
+
+lobbyTree(-4.2, -2.5, 1.15); lobbyTree(4.2, -2.5, 1.15);
+lobbyTree(-6.2, -5.5, 0.85); lobbyTree(6.2, -5.5, 0.85);
+
+const lobbyPlatform = new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.8,0.65,48), lobbyIceMat);
+lobbyPlatform.position.y = -0.55; lobbyGroup.add(lobbyPlatform);
+
+const lobbyArch = new THREE.Group();
+const archMat = new THREE.MeshStandardMaterial({ color: 0xdff8ff, roughness: 0.38, metalness: 0.12 });
+for (const x of [-4.9,4.9]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.55,5.2,0.55), archMat); p.position.set(x,2.05,-3.2); lobbyArch.add(p);
+}
+const archTop = new THREE.Mesh(new THREE.BoxGeometry(10.3,0.65,0.55), archMat); archTop.position.set(0,4.55,-3.2); lobbyArch.add(archTop);
+lobbyGroup.add(lobbyArch);
+
+const lobbyCoin = new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,0.18,32), lobbyGoldMat);
+lobbyCoin.rotation.x = Math.PI/2; lobbyCoin.position.set(0,2.05,-2.35); lobbyGroup.add(lobbyCoin);
+
+const lobbyLight = new THREE.PointLight(0xbceeff, 5.5, 18); lobbyLight.position.set(0,5,-1); lobbyGroup.add(lobbyLight);
+const lobbyFill = new THREE.HemisphereLight(0xdaf7ff,0x18334a,1.7); lobbyGroup.add(lobbyFill);
+
+function animateLobby(dt) {
+    if (!lobbyActive) return;
+    lobbyGroup.rotation.y += dt * 0.12;
+    lobbyCoin.rotation.z += dt * 1.7;
+    lobbyCoin.position.y = 2.05 + Math.sin(performance.now()*0.0025)*0.12;
+}
+
 
 
 /* =========================================================
@@ -3803,6 +4064,42 @@ window.addEventListener(
 
 
 /* =========================================================
+   LOBBY START
+   ========================================================= */
+const lobbyEl = document.getElementById("lobby");
+const startGameButton = document.getElementById("startGameButton");
+
+function beginGame() {
+    if (!lobbyActive) return;
+    lobbyActive = false;
+    stopLobbyMusic();
+    if (musicEnabled) startMusic();
+    lobbyEl.classList.add("hidden");
+    document.getElementById("ui").classList.remove("lobbyHidden");
+    document.getElementById("help").classList.remove("lobbyHidden");
+    document.getElementById("controls").classList.remove("lobbyHidden");
+    player.visible = true;
+    camera.position.set(0,5.2,13);
+    camera.fov = 60;
+    camera.updateProjectionMatrix();
+    previousTime = performance.now();
+}
+
+startGameButton.addEventListener("click", function() {
+    if (musicEnabled) {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === "suspended") audioContext.resume();
+    }
+    beginGame();
+});
+
+/* Game UI starts hidden until the player presses START. */
+document.getElementById("ui").classList.add("lobbyHidden");
+document.getElementById("help").classList.add("lobbyHidden");
+document.getElementById("controls").classList.add("lobbyHidden");
+player.visible = false;
+
+/* =========================================================
    INITIALIZE INFINITE WORLD
    ========================================================= */
 
@@ -3819,11 +4116,8 @@ camera.position.set(
     13
 );
 
-camera.lookAt(
-    0,
-    1,
-    -5
-);
+camera.position.set(0, 2.8, 13.5);
+camera.lookAt(0, 2.1, -2.6);
 
 
 /* =========================================================
@@ -3855,6 +4149,13 @@ function animate(
 
     const worldDt =
         dt * (celebrationActive ? celebrationScale : 1);
+
+    animateLobby(dt);
+
+    if (lobbyActive) {
+        renderer.render(scene, camera);
+        return;
+    }
 
     updatePlayer(
         worldDt
