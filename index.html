@@ -2490,6 +2490,71 @@ rightBoot.position.set(
 rightLegPivot.add(rightBoot);
 
 /* =========================================================
+   SNOWBOARD — широкая 3D-доска без палок
+   ========================================================= */
+function createSnowboard() {
+    const g = new THREE.Group();
+
+    const board = new THREE.Mesh(
+        new THREE.BoxGeometry(1.28, 0.075, 0.88),
+        mats.ice
+    );
+    board.castShadow = true;
+    board.receiveShadow = true;
+    g.add(board);
+
+    const top = new THREE.Mesh(
+        new THREE.BoxGeometry(1.08, 0.035, 0.72),
+        mats.white
+    );
+    top.position.y = 0.052;
+    g.add(top);
+
+    const nose = new THREE.Mesh(
+        new THREE.SphereGeometry(0.14, 16, 10),
+        mats.ice
+    );
+    nose.scale.set(3.1, 0.34, 3.28);
+    nose.position.set(-0.60, 0.015, 0);
+    nose.rotation.z = -0.10;
+    g.add(nose);
+
+    const tail = nose.clone();
+    tail.position.x = 0.60;
+    tail.rotation.z = 0.10;
+    g.add(tail);
+
+    for (const x of [-0.27, 0.27]) {
+        const binding = new THREE.Mesh(
+            new THREE.BoxGeometry(0.16, 0.10, 0.20),
+            mats.black
+        );
+        binding.position.set(x, 0.085, 0);
+        binding.rotation.y = Math.PI / 2;
+        g.add(binding);
+    }
+
+    const edge = new THREE.Mesh(
+        new THREE.BoxGeometry(1.12, 0.025, 0.98),
+        mats.dark
+    );
+    edge.position.y = -0.045;
+    g.add(edge);
+
+    return g;
+}
+
+const snowboard = createSnowboard();
+snowboard.position.set(0, -1.06, -0.04);
+/* Поворачиваем сноуборд на 90° относительно прежней ориентации. */
+snowboard.rotation.y = Math.PI / 2;
+player.add(snowboard);
+
+/* Небольшие крепления/ботинки визуально стоят на одной доске. */
+leftBoot.position.z = 0;
+rightBoot.position.z = 0;
+
+/* =========================================================
    СНЕЖНЫЙ ПОЛ
    ========================================================= */
 
@@ -2516,6 +2581,7 @@ scene.add(floor);
 
 let velocityX = 0;
 let velocityY = 0;
+let landingSquash = 0;
 
 let onGround = false;
 
@@ -3074,6 +3140,8 @@ function updateGroundCollision() {
 
     if (landingPlatform) {
 
+        const wasAirborne = !onGround;
+
         player.position.y =
             landingPlatform.top +
             PLAYER_HEIGHT / 2;
@@ -3081,6 +3149,10 @@ function updateGroundCollision() {
         velocityY = 0;
 
         onGround = true;
+
+        if (wasAirborne) {
+            landingSquash = 1;
+        }
 
         coyoteTimer =
             COYOTE_TIME;
@@ -3202,6 +3274,7 @@ function startCoinCelebration() {
 
     velocityX = 0;
     velocityY = 0;
+    player.scale.set(1, 1, 1);
 
     /* Руки вверх — сразу читается как победная эмоция. */
     leftArmPivot.rotation.x = -0.9;
@@ -3354,169 +3427,74 @@ function updatePlayerAnimation(
 ) {
 
     animTime += dt;
+    landingSquash = Math.max(0, landingSquash - dt * 4.5);
 
-    const horizontalSpeed =
-        Math.abs(velocityX);
+    const horizontalSpeed = Math.abs(velocityX);
+    const movingOnSnow = onGround && horizontalSpeed > 0.08;
+    const airborne = !onGround;
+    const boardBob = Math.sin(animTime * (7 + horizontalSpeed * 0.7));
+    const glide = Math.sin(animTime * 5.5);
 
-    const running =
-        onGround &&
-        horizontalSpeed > 0.15;
+    if (movingOnSnow) {
+        /* Колени согнуты, корпус живо работает, как у сноубордиста. */
+        const knee = 0.62 + Math.abs(Math.sin(animTime * 7.5)) * 0.10;
+        const stride = Math.sin(animTime * 8.5) * 0.16;
 
+        leftLegPivot.rotation.x = THREE.MathUtils.damp(leftLegPivot.rotation.x, knee + stride, 13, dt);
+        rightLegPivot.rotation.x = THREE.MathUtils.damp(rightLegPivot.rotation.x, knee - stride, 13, dt);
 
-    if (running) {
+        leftArmPivot.rotation.x = THREE.MathUtils.damp(leftArmPivot.rotation.x, -0.30 + Math.sin(animTime * 8.5) * 0.24, 12, dt);
+        rightArmPivot.rotation.x = THREE.MathUtils.damp(rightArmPivot.rotation.x, -0.30 - Math.sin(animTime * 8.5) * 0.24, 12, dt);
 
-        const swing =
-            Math.sin(
-                animTime * 10
-            ) * 0.48;
+        body.rotation.z = THREE.MathUtils.damp(body.rotation.z, -velocityX * 0.035 + glide * 0.025, 10, dt);
+        coat.rotation.z = THREE.MathUtils.damp(coat.rotation.z, body.rotation.z * 0.7, 10, dt);
 
-        const armSwing =
-            Math.sin(
-                animTime * 10
-            ) * 0.34;
+        /* Доска режет снег и живо перекантовывается. */
+        snowboard.rotation.y = THREE.MathUtils.damp(snowboard.rotation.y, Math.PI / 2 + velocityX * 0.12, 10, dt);
+        snowboard.rotation.z = THREE.MathUtils.damp(snowboard.rotation.z, -velocityX * 0.075 + Math.sin(animTime * 5.5) * 0.025, 10, dt);
+        snowboard.position.y = THREE.MathUtils.damp(snowboard.position.y, -1.06 + Math.abs(boardBob) * 0.018, 12, dt);
 
+        body.rotation.x = THREE.MathUtils.damp(body.rotation.x, 0.10 + Math.sin(animTime * 5.5) * 0.025, 10, dt);
+        body.position.y = THREE.MathUtils.damp(body.position.y, 0.055 + Math.abs(Math.sin(animTime * 8.5)) * 0.035, 12, dt);
 
-        leftLegPivot.rotation.x =
-            THREE.MathUtils.damp(
-                leftLegPivot.rotation.x,
-                swing,
-                14,
-                dt
-            );
+    } else if (airborne) {
+        /* Прыжок: колени подтягиваются, доска уходит в красивый воздушный наклон. */
+        leftLegPivot.rotation.x = THREE.MathUtils.damp(leftLegPivot.rotation.x, 1.02, 9, dt);
+        rightLegPivot.rotation.x = THREE.MathUtils.damp(rightLegPivot.rotation.x, 0.88, 9, dt);
 
-        rightLegPivot.rotation.x =
-            THREE.MathUtils.damp(
-                rightLegPivot.rotation.x,
-                -swing,
-                14,
-                dt
-            );
+        leftArmPivot.rotation.x = THREE.MathUtils.damp(leftArmPivot.rotation.x, -0.72, 9, dt);
+        rightArmPivot.rotation.x = THREE.MathUtils.damp(rightArmPivot.rotation.x, -0.72, 9, dt);
 
-
-        leftArmPivot.rotation.x =
-            THREE.MathUtils.damp(
-                leftArmPivot.rotation.x,
-                -armSwing,
-                14,
-                dt
-            );
-
-        rightArmPivot.rotation.x =
-            THREE.MathUtils.damp(
-                rightArmPivot.rotation.x,
-                armSwing,
-                14,
-                dt
-            );
-
-    } else if (onGround) {
-
-        leftLegPivot.rotation.x =
-            THREE.MathUtils.damp(
-                leftLegPivot.rotation.x,
-                0,
-                12,
-                dt
-            );
-
-        rightLegPivot.rotation.x =
-            THREE.MathUtils.damp(
-                rightLegPivot.rotation.x,
-                0,
-                12,
-                dt
-            );
-
-        leftArmPivot.rotation.x =
-            THREE.MathUtils.damp(
-                leftArmPivot.rotation.x,
-                0,
-                12,
-                dt
-            );
-
-        rightArmPivot.rotation.x =
-            THREE.MathUtils.damp(
-                rightArmPivot.rotation.x,
-                0,
-                12,
-                dt
-            );
+        snowboard.rotation.y = THREE.MathUtils.damp(snowboard.rotation.y, Math.PI / 2 + 0.16, 9, dt);
+        snowboard.rotation.z = THREE.MathUtils.damp(snowboard.rotation.z, -0.32, 9, dt);
+        snowboard.position.y = THREE.MathUtils.damp(snowboard.position.y, -1.00, 9, dt);
+        body.rotation.x = THREE.MathUtils.damp(body.rotation.x, -0.12, 9, dt);
+        body.position.y = THREE.MathUtils.damp(body.position.y, 0.0, 10, dt);
 
     } else {
-
-        /* JUMP */
-
-        leftArmPivot.rotation.x =
-            THREE.MathUtils.damp(
-                leftArmPivot.rotation.x,
-                -0.7,
-                10,
-                dt
-            );
-
-        rightArmPivot.rotation.x =
-            THREE.MathUtils.damp(
-                rightArmPivot.rotation.x,
-                -0.7,
-                10,
-                dt
-            );
-
-        leftLegPivot.rotation.x =
-            THREE.MathUtils.damp(
-                leftLegPivot.rotation.x,
-                0.25,
-                10,
-                dt
-            );
-
-        rightLegPivot.rotation.x =
-            THREE.MathUtils.damp(
-                rightLegPivot.rotation.x,
-                -0.25,
-                10,
-                dt
-            );
+        /* Спокойное скольжение/остановка: мягкое восстановление позы. */
+        leftLegPivot.rotation.x = THREE.MathUtils.damp(leftLegPivot.rotation.x, 0.35, 9, dt);
+        rightLegPivot.rotation.x = THREE.MathUtils.damp(rightLegPivot.rotation.x, 0.35, 9, dt);
+        leftArmPivot.rotation.x = THREE.MathUtils.damp(leftArmPivot.rotation.x, -0.18, 9, dt);
+        rightArmPivot.rotation.x = THREE.MathUtils.damp(rightArmPivot.rotation.x, -0.18, 9, dt);
+        snowboard.rotation.y = THREE.MathUtils.damp(snowboard.rotation.y, Math.PI / 2, 9, dt);
+        snowboard.rotation.z = THREE.MathUtils.damp(snowboard.rotation.z, 0, 9, dt);
+        snowboard.position.y = THREE.MathUtils.damp(snowboard.position.y, -1.06, 9, dt);
+        body.rotation.x = THREE.MathUtils.damp(body.rotation.x, 0, 9, dt);
+        body.position.y = THREE.MathUtils.damp(body.position.y, 0, 10, dt);
     }
 
+    const squash = landingSquash * 0.10;
+    player.scale.y = THREE.MathUtils.damp(player.scale.y, 1 - squash, 12, dt);
+    player.scale.x = THREE.MathUtils.damp(player.scale.x, 1 + squash * 0.45, 12, dt);
 
-    /* BODY LEAN */
+    /* Мягкий наклон всего тела в сторону управления. */
+    const targetTilt = THREE.MathUtils.clamp(-velocityX * 0.055, -0.34, 0.34);
+    player.rotation.z = THREE.MathUtils.damp(player.rotation.z, targetTilt, 8, dt);
 
-    const targetTilt =
-        THREE.MathUtils.clamp(
-            -velocityX * 0.045,
-            -0.28,
-            0.28
-        );
-
-    player.rotation.z =
-        THREE.MathUtils.damp(
-            player.rotation.z,
-            targetTilt,
-            9,
-            dt
-        );
-
-
-    /* SMALL BODY BOUNCE */
-
-    const targetBodyY =
-        running
-            ? Math.abs(
-                Math.sin(
-                    animTime * 10
-                )
-            ) * 0.045
-            : 0;
-
-    body.position.y =
-        THREE.MathUtils.damp(
-            body.position.y,
-            targetBodyY,
-            12,
-            dt
-        );
+    /* Сноуборд слегка вибрирует на снегу, пока персонаж скользит. */
+    const boardLean = movingOnSnow ? Math.sin(animTime * 4.2) * 0.025 : 0;
+    snowboard.rotation.x = THREE.MathUtils.damp(snowboard.rotation.x, boardLean, 8, dt);
 }
 
 /* =========================================================
