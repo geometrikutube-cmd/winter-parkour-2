@@ -431,10 +431,38 @@ scene.background = new THREE.Color(0x9edcff);
 
 scene.fog = new THREE.Fog(
     0x9edcff,
-    38,
-    125
+    42,
+    145
 );
 
+/* Lightweight procedural sky: one mesh, no image download. */
+function createSkyDome() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, "#4f9ed1");
+    g.addColorStop(0.48, "#9edcff");
+    g.addColorStop(1, "#eaf9ff");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+    const glow = ctx.createRadialGradient(190, 48, 2, 190, 48, 58);
+    glow.addColorStop(0, "rgba(255,255,255,0.95)");
+    glow.addColorStop(0.22, "rgba(255,250,220,0.42)");
+    glow.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(130, 0, 126, 115);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const sky = new THREE.Mesh(
+        new THREE.SphereGeometry(110, 16, 8),
+        new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, depthWrite: false })
+    );
+    sky.frustumCulled = false;
+    scene.add(sky);
+}
+createSkyDome();
 
 /* =========================================================
    CAMERA
@@ -480,6 +508,9 @@ renderer.shadowMap.type =
 
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
+
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = isMobile ? 1.12 : 1.18;
 
 document.body.appendChild(
     renderer.domElement
@@ -903,7 +934,12 @@ const mats = {
         new THREE.MeshStandardMaterial({
             color: 0x27583a,
             roughness: 0.9
-        })
+        }),
+
+    mountain: new THREE.MeshStandardMaterial({
+        color: 0x7ea6c4,
+        roughness: 1.0
+    })
 };
 
 
@@ -1252,7 +1288,7 @@ function createCoin(
     mesh.rotation.x =
         Math.PI / 2;
 
-    mesh.castShadow = true;
+    mesh.castShadow = !isMobile;
 
     scene.add(mesh);
 
@@ -1448,6 +1484,23 @@ function createDynamicMountain(x, y, z, scale) {
     );
 }
 
+
+/* ЛЁГКИЙ ДАЛЬНИЙ ГОРНЫЙ СИЛУЭТ */
+function createBackdropMountain(x, y, z, sx, sy, sz) {
+    const m = new THREE.Mesh(mountainGeometry, mats.mountain);
+    m.position.set(x, y, z);
+    m.scale.set(sx, sy, sz);
+    m.rotation.y = Math.random() * Math.PI;
+    m.castShadow = false;
+    m.receiveShadow = false;
+    scene.add(m);
+    return m;
+}
+
+createBackdropMountain(-22, 13, -78, 15, 12, 9);
+createBackdropMountain(23, 15, -96, 17, 14, 10);
+createBackdropMountain(-25, 18, -124, 20, 16, 12);
+createBackdropMountain(26, 20, -150, 22, 18, 13);
 
 /* ДАЛЬНИЕ СНЕЖНЫЕ ГОРЫ */
 
