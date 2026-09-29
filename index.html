@@ -1124,6 +1124,48 @@ platform(2, 13, -151, 9, 9, 0.8, mats.snow);
    HAZARDS
    ========================================================= */
 
+/* Lightweight reusable geometry for moving ice spikes. */
+const spikeGeometry = new THREE.ConeGeometry(1, 2, 6);
+
+function createIceSpike(
+    x,
+    y,
+    z,
+    width,
+    height,
+    depth
+) {
+
+    const material = mats.ice;
+
+    const mesh = new THREE.Mesh(
+        spikeGeometry,
+        material
+    );
+
+    mesh.scale.set(
+        width * 0.5,
+        height * 0.5,
+        depth * 0.5
+    );
+
+    /* Cone tip points downward, like a roof icicle. */
+    mesh.rotation.x = Math.PI;
+
+    mesh.position.set(
+        x,
+        y,
+        z
+    );
+
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+
+    scene.add(mesh);
+
+    return mesh;
+}
+
 function hazard(
     x,
     y,
@@ -1131,22 +1173,18 @@ function hazard(
     width,
     height,
     depth,
-    material = mats.red
+    material = mats.ice
 ) {
 
     const mesh =
-        box(
+        createIceSpike(
+            x,
+            y,
+            z,
             width,
             height,
-            depth,
-            material
+            depth
         );
-
-    mesh.position.set(
-        x,
-        y,
-        z
-    );
 
     scene.add(mesh);
 
@@ -1155,9 +1193,14 @@ function hazard(
         x: x,
         y: y,
         z: z,
+        baseX: x,
         width: width,
         height: height,
-        depth: depth
+        depth: depth,
+        moving: false,
+        amplitude: 0,
+        speed: 0,
+        phase: Math.random() * Math.PI * 2
     });
 
     return mesh;
@@ -1217,6 +1260,13 @@ hazard(2, 10, -109, 2, 1.5, 1.7);
 hazard(-3, 11, -120, 1.8, 2, 1.8);
 hazard(1, 12, -132, 2, 1.5, 1.8);
 hazard(-2, 13, -144, 1.8, 2, 1.8);
+
+/* A few early moving icicles so the mechanic starts naturally. */
+for (const h of hazards) {
+    h.moving = Math.random() < 0.65;
+    h.amplitude = h.moving ? 0.55 + Math.random() * 0.85 : 0;
+    h.speed = 1.0 + Math.random() * 1.0;
+}
 
 
 /* =========================================================
@@ -2077,15 +2127,21 @@ function generateInfiniteChunk() {
 
         hazard(
             hazardX,
-            generatedY + 0.4 + hazardHeight / 2,
+            generatedY + 1.65 + hazardHeight / 2,
             nextGeneratedZ,
             hazardWidth,
             hazardHeight,
-            1.15,
-            Math.random() < 0.5 ? mats.red : mats.blue
+            1.15
         );
 
-        hazards[hazards.length - 1].dynamic = true;
+        const movingSpike = hazards[hazards.length - 1];
+        movingSpike.dynamic = true;
+        movingSpike.moving = Math.random() < 0.78;
+        movingSpike.amplitude = movingSpike.moving
+            ? 0.7 + Math.random() * 1.25
+            : 0;
+        movingSpike.speed =
+            1.1 + Math.random() * 1.25;
     }
 
     if (Math.random() < 0.38) {
@@ -2756,6 +2812,26 @@ function updatePlayerAnimation(
 }
 
 /* =========================================================
+   MOVING ICE SPIKES
+   ========================================================= */
+
+function updateHazards(dt) {
+
+    for (const h of hazards) {
+        if (!h.moving) continue;
+
+        h.phase += h.speed * dt;
+
+        const offset =
+            Math.sin(h.phase) * h.amplitude;
+
+        h.x = h.baseX + offset;
+        h.mesh.position.x = h.x;
+    }
+}
+
+
+/* =========================================================
    PLAYER MOVEMENT
    ========================================================= */
 
@@ -3255,6 +3331,10 @@ function animate(
 
 
     updatePlayer(
+        dt
+    );
+
+    updateHazards(
         dt
     );
 
