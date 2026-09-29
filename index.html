@@ -229,10 +229,10 @@ canvas {
 
 #coinCelebrationText {
     position: fixed;
-    left: 50%;
-    top: 50%;
+    left: 0;
+    top: 0;
     z-index: 60;
-    transform: translate(-50%, -50%) perspective(700px) rotateX(10deg) scale(0.72);
+    transform: translate(-50%, -100%) perspective(700px) rotateX(10deg) scale(0.72);
     transform-style: preserve-3d;
     width: min(900px, calc(100vw - 24px));
     padding: 18px 24px 22px;
@@ -263,7 +263,7 @@ canvas {
 
 #coinCelebrationText.show {
     opacity: 1;
-    transform: translate(-50%, -50%) perspective(700px) rotateX(0deg) scale(1);
+    transform: translate(-50%, -100%) perspective(700px) rotateX(0deg) scale(1);
 }
 
 #coinCelebrationText .coinNumber {
@@ -439,10 +439,11 @@ canvas {
 "use strict";
 
 /* =========================================================
-   MUSIC — ORIGINAL WINTER DANCE LOOP
+   MUSIC — MELODIC WINTER HOUSE
    ---------------------------------------------------------
-   Inspired by a bright winter/electro-pop atmosphere.
-   This is an original melody, not a copy of any song.
+   Original composition with a warm, nostalgic deep-house feel:
+   flowing lead, sustained chords, round bass and a soft groove.
+   It does not reproduce the melody or recording of any existing song.
    ========================================================= */
 
 let musicEnabled = localStorage.getItem("winterParkourMusic") !== "off";
@@ -452,183 +453,173 @@ let lobbyActive = true;
 let audioContext = null;
 let musicTimer = null;
 let musicStep = 0;
-let musicNextChord = 0;
+let musicBar = 0;
+let musicTrack = 0;
 
-/* Original 16-step winter lead: sparkling, upbeat and icy. */
-const winterLead = [
-    659.25, 783.99, 880.00, 783.99,
-    698.46, 783.99, 987.77, 880.00,
-    659.25, 783.99, 1046.50, 987.77,
-    880.00, 783.99, 698.46, 659.25
+/*
+   Three original, related winter-house tracks.
+   They share the same warm/deep-house character, but each has its own
+   melody and chord movement. They switch automatically one after another.
+*/
+const musicTracks = [
+    {
+        name: "Snowy Ride",
+        lead: [392,440,493.88,587.33,659.25,587.33,493.88,440, 392,493.88,587.33,659.25,587.33,523.25,493.88,440, 349.23,392,440,523.25,587.33,523.25,440,392, 440,493.88,587.33,659.25,783.99,659.25,587.33,493.88],
+        chords: [[261.63,329.63,392,493.88],[349.23,440,523.25,659.25],[293.66,349.23,440,587.33],[329.63,392,493.88,587.33]],
+        bass: [196,196,174.61,174.61,146.83,146.83,164.81,164.81]
+    },
+    {
+        name: "Frozen Lights",
+        lead: [523.25,587.33,659.25,783.99,659.25,587.33,523.25,493.88, 440,493.88,523.25,659.25,587.33,523.25,493.88,440, 392,440,493.88,587.33,659.25,587.33,493.88,440, 493.88,587.33,659.25,783.99,880,783.99,659.25,587.33],
+        chords: [[349.23,440,523.25,659.25],[293.66,349.23,440,587.33],[261.63,329.63,392,493.88],[392,493.88,587.33,659.25]],
+        bass: [174.61,174.61,146.83,146.83,130.81,130.81,196,196]
+    },
+    {
+        name: "Snowboard Sunset",
+        lead: [440,493.88,587.33,659.25,783.99,659.25,587.33,493.88, 392,440,523.25,587.33,659.25,587.33,523.25,440, 493.88,523.25,587.33,783.99,659.25,587.33,523.25,493.88, 440,523.25,659.25,783.99,659.25,587.33,493.88,440],
+        chords: [[293.66,349.23,440,587.33],[329.63,392,493.88,587.33],[349.23,440,523.25,659.25],[261.63,329.63,392,493.88]],
+        bass: [146.83,146.83,164.81,164.81,174.61,174.61,196,196]
+    }
 ];
 
-const winterBass = [
-    220.00, 220.00, 196.00, 196.00,
-    174.61, 174.61, 196.00, 196.00,
-    220.00, 220.00, 196.00, 196.00,
-    174.61, 174.61, 196.00, 220.00
-];
-
-const winterChords = [
-    [261.63, 329.63, 392.00],
-    [220.00, 261.63, 329.63],
-    [174.61, 220.00, 261.63],
-    [196.00, 246.94, 293.66]
-];
-
-function winterTone(freq, duration, type, volume, when, filterFreq = 2600) {
+function houseTone(freq, duration, type, volume, when, filterFreq = 2600, attack = 0.035) {
     if (!audioContext || !musicEnabled) return;
-
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     const filter = audioContext.createBiquadFilter();
-
     osc.type = type;
     osc.frequency.setValueAtTime(freq, when);
-
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(filterFreq, when);
-    filter.Q.value = 0.7;
-
+    filter.Q.value = 0.55;
     gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(volume, when + 0.018);
+    gain.gain.linearRampToValueAtTime(volume, when + attack);
+    gain.gain.setValueAtTime(volume * 0.82, when + Math.max(attack, duration * 0.42));
     gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioContext.destination);
-
-    osc.start(when);
-    osc.stop(when + duration + 0.03);
+    osc.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    osc.start(when); osc.stop(when + duration + 0.04);
 }
 
-function winterBell(freq, when) {
+function housePad(freq, duration, when, volume = 0.018) {
     if (!audioContext || !musicEnabled) return;
-
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     const filter = audioContext.createBiquadFilter();
-
     osc.type = "sine";
     osc.frequency.setValueAtTime(freq, when);
-
-    filter.type = "highpass";
-    filter.frequency.setValueAtTime(700, when);
-
+    filter.type = "lowpass"; filter.frequency.setValueAtTime(1500, when); filter.Q.value = 0.45;
     gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(0.075, when + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.34);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioContext.destination);
-
-    osc.start(when);
-    osc.stop(when + 0.38);
+    gain.gain.linearRampToValueAtTime(volume, when + 0.12);
+    gain.gain.setValueAtTime(volume * 0.88, when + duration * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+    osc.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    osc.start(when); osc.stop(when + duration + 0.08);
 }
 
-function winterKick(when) {
+function houseKick(when) {
     if (!audioContext || !musicEnabled) return;
-
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
-
     osc.type = "sine";
-    osc.frequency.setValueAtTime(125, when);
-    osc.frequency.exponentialRampToValueAtTime(48, when + 0.12);
-
+    osc.frequency.setValueAtTime(105, when);
+    osc.frequency.exponentialRampToValueAtTime(55, when + 0.16);
     gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(0.13, when + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
+    gain.gain.exponentialRampToValueAtTime(0.075, when + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.22);
+    osc.connect(gain); gain.connect(audioContext.destination);
+    osc.start(when); osc.stop(when + 0.24);
+}
 
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    osc.start(when);
-    osc.stop(when + 0.16);
+function houseSoftHat(when) {
+    if (!audioContext || !musicEnabled) return;
+    const bufferSize = Math.floor(audioContext.sampleRate * 0.045);
+    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const source = audioContext.createBufferSource();
+    const filter = audioContext.createBiquadFilter();
+    const gain = audioContext.createGain();
+    source.buffer = buffer; filter.type = "highpass"; filter.frequency.value = 5200;
+    gain.gain.setValueAtTime(0.010, when);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
+    source.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    source.start(when);
 }
 
 function playMusicStep() {
     if (!audioContext || !musicEnabled) return;
 
+    const track = musicTracks[musicTrack];
     const now = audioContext.currentTime;
-    const step = musicStep % 16;
+    const step = musicStep % 128;
+    const phraseStep = step % 32;
+    const beat = step % 4;
+    const chordIndex = Math.floor(step / 8) % track.chords.length;
+    const secondsPerStep = 0.142857; // 105 BPM
 
-    /* Bright lead. */
-    winterTone(
-        winterLead[step],
-        0.19,
-        "triangle",
-        0.045,
-        now,
-        3600
-    );
+    /* Four passes develop the same theme without sounding like one short loop. */
+    let note = track.lead[phraseStep];
+    if ((step >= 32 && phraseStep % 8 === 7) || (step >= 96 && phraseStep % 4 === 3)) note *= 2;
+    houseTone(note, 0.25, "triangle", 0.048, now, 2750, 0.045);
 
-    /* Warm bass underneath the lead. */
-    winterTone(
-        winterBass[step],
-        0.24,
-        "sine",
-        0.07,
-        now,
-        900
-    );
+    if (step % 2 === 0) {
+        houseTone(note / 2, 0.34, "sine", 0.013, now, 1200, 0.05);
+    }
 
-    /* Four soft chord changes per loop. */
-    if (step % 4 === 0) {
-        const chord = winterChords[musicNextChord % winterChords.length];
-        for (const note of chord) {
-            winterTone(note, 0.82, "sine", 0.018, now, 1800);
+    if (step % 8 === 0) {
+        for (const chordNote of track.chords[chordIndex]) {
+            housePad(chordNote, 1.65, now, 0.0145);
         }
-        musicNextChord++;
     }
 
-    /* Dance pulse. */
-    if (step % 4 === 0 || step % 4 === 2) {
-        winterKick(now);
+    if (step % 2 === 0) {
+        const root = track.bass[(Math.floor(step / 4) + musicBar) % track.bass.length];
+        const bassNote = step % 4 === 2 ? root * 1.5 : root;
+        houseTone(bassNote, 0.42, "sine", 0.064, now, 720, 0.018);
     }
 
-    /* Tiny icy bell accents. */
-    if (step === 3 || step === 7 || step === 11 || step === 15) {
-        winterBell(winterLead[step] * 2, now);
+    if (beat === 0 || beat === 2) houseKick(now);
+    if (step % 2 === 1) houseSoftHat(now);
+    if (step === 31 || step === 63 || step === 95 || step === 127) {
+        houseTone(note * 2, 0.13, "sine", 0.012, now, 3500, 0.008);
     }
 
     musicStep++;
+    if (musicStep % 32 === 0) musicBar++;
+
+    /* 128 steps ≈ 18.3 seconds. After each track, continue with the next. */
+    if (musicStep >= 128) {
+        musicStep = 0;
+        musicBar = 0;
+        musicTrack = (musicTrack + 1) % musicTracks.length;
+    }
 }
 
 function startMusic() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    if (audioContext.state === "suspended") {
-        audioContext.resume();
-    }
-
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === "suspended") audioContext.resume();
     if (musicTimer) return;
-
     musicStep = 0;
-    musicNextChord = 0;
+    musicBar = 0;
+    musicTrack = 0;
     playMusicStep();
-
-    /* 16th-note pulse at about 120 BPM. */
-    musicTimer = setInterval(playMusicStep, 125);
+    musicTimer = setInterval(playMusicStep, 142.857);
 }
 
 function stopMusic() {
-    if (musicTimer) {
-        clearInterval(musicTimer);
-        musicTimer = null;
-    }
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
 }
 
 function playLobbyStep() {
     if (!audioContext || !musicEnabled) return;
     const now = audioContext.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.50, 880.00, 783.99, 659.25, 987.77];
+    const notes = [392.00, 440.00, 493.88, 587.33, 523.25, 493.88, 440.00, 392.00];
     const note = notes[lobbyMusicStep % notes.length];
-    winterTone(note, 0.22, "triangle", 0.055, now, 4200);
-    if (lobbyMusicStep % 2 === 0) winterBell(note * 2, now);
-    if (lobbyMusicStep % 4 === 0) winterTone(note / 2, 0.45, "sine", 0.035, now, 1100);
+
+    houseTone(note, 0.42, "triangle", 0.042, now, 2600, 0.06);
+    if (lobbyMusicStep % 4 === 0) {
+        housePad(note / 2, 0.82, now, 0.020);
+    }
     lobbyMusicStep++;
 }
 
@@ -636,7 +627,7 @@ function startLobbyMusic() {
     if (!audioContext || !musicEnabled || lobbyMusicTimer) return;
     lobbyMusicStep = 0;
     playLobbyStep();
-    lobbyMusicTimer = setInterval(playLobbyStep, 210);
+    lobbyMusicTimer = setInterval(playLobbyStep, 375);
 }
 
 function stopLobbyMusic() {
@@ -668,6 +659,7 @@ musicButton.addEventListener("click", function() {
     } else {
         musicButton.textContent = "🔇 Музыка";
         stopMusic();
+        stopLobbyMusic();
     }
 });
 
@@ -2495,9 +2487,26 @@ rightLegPivot.add(rightBoot);
 function createSnowboard() {
     const g = new THREE.Group();
 
+    // Яркая оранжевая основа — доска хорошо заметна на снегу.
+    const orangeMat = new THREE.MeshStandardMaterial({
+        color: 0xff6a00,
+        roughness: 0.32,
+        metalness: 0.08
+    });
+    const greenMat = new THREE.MeshStandardMaterial({
+        color: 0x39d353,
+        roughness: 0.28,
+        metalness: 0.05
+    });
+    const darkGreenMat = new THREE.MeshStandardMaterial({
+        color: 0x168a3b,
+        roughness: 0.35,
+        metalness: 0.05
+    });
+
     const board = new THREE.Mesh(
         new THREE.BoxGeometry(1.28, 0.075, 0.88),
-        mats.ice
+        orangeMat
     );
     board.castShadow = true;
     board.receiveShadow = true;
@@ -2505,14 +2514,33 @@ function createSnowboard() {
 
     const top = new THREE.Mesh(
         new THREE.BoxGeometry(1.08, 0.035, 0.72),
-        mats.white
+        greenMat
     );
     top.position.y = 0.052;
     g.add(top);
 
+    // Оранжевая центральная полоса поверх зелёной вставки.
+    const centerStripe = new THREE.Mesh(
+        new THREE.BoxGeometry(1.10, 0.018, 0.18),
+        orangeMat
+    );
+    centerStripe.position.y = 0.073;
+    g.add(centerStripe);
+
+    // Зелёные декоративные полосы по краям верхней части.
+    for (const z of [-0.25, 0.25]) {
+        const insert = new THREE.Mesh(
+            new THREE.BoxGeometry(0.82, 0.022, 0.07),
+            darkGreenMat
+        );
+        insert.position.set(0, 0.075, z);
+        insert.rotation.y = 0.02;
+        g.add(insert);
+    }
+
     const nose = new THREE.Mesh(
         new THREE.SphereGeometry(0.14, 16, 10),
-        mats.ice
+        orangeMat
     );
     nose.scale.set(3.1, 0.34, 3.28);
     nose.position.set(-0.60, 0.015, 0);
@@ -2536,7 +2564,7 @@ function createSnowboard() {
 
     const edge = new THREE.Mesh(
         new THREE.BoxGeometry(1.12, 0.025, 0.98),
-        mats.dark
+        darkGreenMat
     );
     edge.position.y = -0.045;
     g.add(edge);
@@ -3232,15 +3260,19 @@ function checkHazards() {
    ========================================================= */
 function getCoinCelebrationMessage(count) {
     const messages = {
-        10: "Ого, уже <span class=\"coinNumber\">10</span>!",
-        20: "Невероятно, уже <span class=\"coinNumber\">20</span>!",
-        30: "Давай-давай, уже <span class=\"coinNumber\">30</span>!",
-        40: "Ух ты, уже <span class=\"coinNumber\">40</span>!",
-        50: "Вот это темп — уже <span class=\"coinNumber\">50</span>!",
-        60: "Мы не останавливаемся — <span class=\"coinNumber\">60</span>!"
+        10: "Ого, уже <span class=\"coinNumber\">10</span> монет!",
+        20: "Ух ты, уже <span class=\"coinNumber\">20</span> монет!",
+        30: "Вот это да, уже <span class=\"coinNumber\">30</span>!",
+        40: "Красота, уже <span class=\"coinNumber\">40</span>!",
+        50: "Ничего себе, уже <span class=\"coinNumber\">50</span>!",
+        60: "Давай-давай, уже <span class=\"coinNumber\">60</span>!",
+        70: "Ого, уже <span class=\"coinNumber\">70</span>!",
+        80: "Невероятно, уже <span class=\"coinNumber\">80</span>!",
+        90: "Ещё чуть-чуть — уже <span class=\"coinNumber\">90</span>!",
+        100: "Вау! Уже <span class=\"coinNumber\">100</span> монет!"
     };
     if (messages[count]) return messages[count];
-    return "Красота! Уже <span class=\"coinNumber\">" + count + "</span> монет!";
+    return "Ого! Уже <span class=\"coinNumber\">" + count + "</span> монет!";
 }
 
 function showCoinCelebrationMessage(count) {
@@ -3255,6 +3287,21 @@ function showCoinCelebrationMessage(count) {
 function hideCoinCelebrationMessage() {
     const el = document.getElementById("coinCelebrationText");
     if (el) el.classList.remove("show");
+}
+
+function updateCoinCelebrationMessagePosition() {
+    const el = document.getElementById("coinCelebrationText");
+    if (!el || !celebrationActive) return;
+
+    /* Project a point just above the character into screen coordinates. */
+    const anchor = new THREE.Vector3(0, 1.95, 0);
+    player.localToWorld(anchor);
+    anchor.project(camera);
+
+    const x = (anchor.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-anchor.y * 0.5 + 0.5) * window.innerHeight;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
 }
 
 function startCoinCelebration() {
@@ -4160,6 +4207,8 @@ function animate(
     updateCoinCelebration(
         dt
     );
+
+    updateCoinCelebrationMessagePosition();
 
     updateSnow(
         worldDt
