@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Winter Block Parkour</title>
+<title>Winter Block Parkour 2 • ∞ 2 - Infinite</title>
 
 <style>
 * {
@@ -235,11 +235,11 @@ canvas {
 <div id="ui">
     <div id="top">
         <div class="uiBox">
-            <div id="coinsUI">âï¸ ÐÐ¾Ð½ÐµÑÑ: 0</div>
-            <div id="distanceUI">ÐÐ¸ÑÑÐ°Ð½ÑÐ¸Ñ: 0 Ð¼</div>
-            <div id="levelUI">Ð£ÑÐ¾Ð²ÐµÐ½Ñ: 1</div>
+            <div id="coinsUI">❄️ Монеты: 0</div>
+            <div id="distanceUI">Дистанция: 0 м</div>
+            <div id="levelUI">Уровень: 1</div>
         </div>
-<button class="musicButton" id="musicButton">ð ÐÑÐ·ÑÐºÐ°</button>
+<button class="musicButton" id="musicButton">🔇 Музыка</button>
     <div class="uiBox" id="titleUI">
         WINTER BLOCK PARKOUR
     </div>
@@ -248,13 +248,13 @@ canvas {
 </div>
 
 <div id="help">
-    â â / A D â Ð´Ð²Ð¸Ð¶ÐµÐ½Ð¸Ðµ &nbsp; â¢ &nbsp; SPACE â Ð¿ÑÑÐ¶Ð¾Ðº
+    ← → / A D — движение &nbsp; • &nbsp; SPACE — прыжок
 </div>
 
 <div id="controls">
     <div class="controlSide">
-        <button class="controlButton" id="leftButton">â</button>
-        <button class="controlButton" id="rightButton">â¶</button>
+        <button class="controlButton" id="leftButton">◀</button>
+        <button class="controlButton" id="rightButton">▶</button>
     </div>
 
 <div class="controlSide">
@@ -264,9 +264,9 @@ canvas {
 </div>
 
 <div id="message">
-    <h1 id="messageTitle">Ð¤Ð¸Ð½Ð¸Ñ!</h1>
+    <h1 id="messageTitle">Финиш!</h1>
     <p id="messageText"></p>
-    <button id="restartButton">ÐÐ³ÑÐ°ÑÑ ÑÐ½Ð¾Ð²Ð°</button>
+    <button id="restartButton">Играть снова</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -349,14 +349,14 @@ const musicButton = document.getElementById("musicButton");
     if (musicEnabled) {
 
         musicButton.textContent =
-            "ð ÐÑÐ·ÑÐºÐ°";
+            "🔊 Музыка";
 
         startMusic();
 
     } else {
 
         musicButton.textContent =
-            "ð ÐÑÐ·ÑÐºÐ°";
+            "🔇 Музыка";
 
         stopMusic();
     }
@@ -366,7 +366,7 @@ const musicButton = document.getElementById("musicButton");
 if (musicEnabled) {
 
     musicButton.textContent =
-        "ð ÐÑÐ·ÑÐºÐ°";
+        "🔊 Музыка";
 
     document.addEventListener(
         "pointerdown",
@@ -973,263 +973,6 @@ const hazards = [];
 const coins = [];
 const trees = [];
 
-/* =========================================================
-   ÐÐÐ¡ÐÐÐÐÐ§ÐÐ«Ð ÐÐÐ 
-   ========================================================= */
-
-let nextGeneratedZ = -160;
-let generatedX = 2;
-let generatedY = 13;
-
-const GENERATED_AHEAD = 280;
-const GENERATED_BEHIND = 55;
-
-function currentDistance() {
-    return Math.max(
-        0,
-        START_Z - player.position.z
-    );
-}
-
-function currentLevel() {
-    return 1 + Math.floor(currentDistance() / 500);
-}
-
-function getRunSpeed() {
-    return Math.min(
-        12,
-        AUTO_SPEED + currentDistance() * 0.0018
-    );
-}
-
-function removeObjectFromScene(mesh) {
-    if (mesh && mesh.parent) {
-        mesh.parent.remove(mesh);
-    }
-}
-
-function cleanupInfiniteWorld() {
-
-    for (let i = platforms.length - 1; i >= 0; i--) {
-        const p = platforms[i];
-
-        if (
-            p.dynamic &&
-            p.z > player.position.z + GENERATED_BEHIND
-        ) {
-            removeObjectFromScene(p.mesh);
-            platforms.splice(i, 1);
-        }
-    }
-
-    for (let i = hazards.length - 1; i >= 0; i--) {
-        const h = hazards[i];
-
-        if (
-            h.dynamic &&
-            h.z > player.position.z + GENERATED_BEHIND
-        ) {
-            removeObjectFromScene(h.mesh);
-            hazards.splice(i, 1);
-        }
-    }
-
-    for (let i = coins.length - 1; i >= 0; i--) {
-        const c = coins[i];
-
-        if (
-            c.dynamic &&
-            c.mesh.position.z > player.position.z + GENERATED_BEHIND
-        ) {
-            removeObjectFromScene(c.mesh);
-            coins.splice(i, 1);
-        }
-    }
-
-    for (let i = trees.length - 1; i >= 0; i--) {
-        const tree = trees[i];
-
-        if (
-            tree.userData.dynamic &&
-            tree.position.z > player.position.z + GENERATED_BEHIND
-        ) {
-            removeObjectFromScene(tree);
-            trees.splice(i, 1);
-        }
-    }
-}
-
-function generateInfiniteChunk() {
-
-    const distance = currentDistance();
-    const level = currentLevel();
-
-    const gap = 8.0 + Math.random() * 1.5;
-
-    nextGeneratedZ -= gap;
-
-    const maxX = Math.min(
-        4.3,
-        3.1 + level * 0.18
-    );
-
-    let targetX =
-        generatedX +
-        (Math.random() * 4.4 - 2.2);
-
-    targetX = THREE.MathUtils.clamp(
-        targetX,
-        -maxX,
-        maxX
-    );
-
-    generatedX = targetX;
-
-    const maxStepY =
-        Math.min(1.15, 0.65 + level * 0.08);
-
-    generatedY +=
-        (Math.random() * 2 - 1) *
-        maxStepY;
-
-    generatedY = THREE.MathUtils.clamp(
-        generatedY,
-        0,
-        18
-    );
-
-    const width =
-        Math.max(
-            5.0,
-            7.2 - level * 0.12 -
-            Math.random() * 1.1
-        );
-
-    const depth =
-        6.8 + Math.random() * 1.1;
-
-    const materialRoll = Math.random();
-
-    const material =
-        materialRoll < 0.24
-            ? mats.ice
-            : materialRoll < 0.48
-                ? mats.wood
-                : mats.snow;
-
-    const mesh = platform(
-        generatedX,
-        generatedY,
-        nextGeneratedZ,
-        width,
-        depth,
-        0.8,
-        material
-    );
-
-    const platformData =
-        platforms[platforms.length - 1];
-
-    platformData.dynamic = true;
-
-    /* ÐÐ¾Ð½ÐµÑÐ° Ð¿Ð¾ÑÑÐ¸ Ð½Ð° ÐºÐ°Ð¶Ð´Ð¾Ð¹ Ð¿Ð»Ð°ÑÑÐ¾ÑÐ¼Ðµ */
-
-    createCoin(
-        generatedX,
-        generatedY + 1.15,
-        nextGeneratedZ
-    );
-
-    coins[coins.length - 1].dynamic = true;
-
-    /* ÐÑÐµÐ¿ÑÑÑÑÐ²Ð¸Ñ Ð¿Ð¾ÑÐ²Ð»ÑÑÑÑÑ Ð¿Ð¾ÑÑÐµÐ¿ÐµÐ½Ð½Ð¾ */
-
-    const hazardChance =
-        Math.min(
-            0.48,
-            0.18 + level * 0.035
-        );
-
-    if (
-        Math.random() < hazardChance
-    ) {
-
-        const hazardWidth =
-            Math.min(
-                1.8,
-                1.25 + Math.random() * 0.45
-            );
-
-        const hazardHeight =
-            1.0 + Math.random() * 0.9;
-
-        const hazardX =
-            THREE.MathUtils.clamp(
-                generatedX +
-                (Math.random() * 2.8 - 1.4),
-                generatedX - width / 2 + 1,
-                generatedX + width / 2 - 1
-            );
-
-        hazard(
-            hazardX,
-            generatedY +
-            0.4 +
-            hazardHeight / 2,
-            nextGeneratedZ,
-            hazardWidth,
-            hazardHeight,
-            1.15,
-            Math.random() < 0.5
-                ? mats.red
-                : mats.blue
-        );
-
-        hazards[hazards.length - 1].dynamic = true;
-    }
-
-    /* ÐÐ»ÐºÐ¸ Ð¿Ð¾ Ð±Ð¾ÐºÐ°Ð¼ ÑÑÐ°ÑÑÑ */
-
-    if (Math.random() < 0.72) {
-
-        const side =
-            Math.random() < 0.5
-                ? -1
-                : 1;
-
-        const treeX =
-            side * (
-                7.0 +
-                Math.random() * 2.8
-            );
-
-        const tree =
-            createTree(
-                treeX,
-                Math.max(0, generatedY - 0.2),
-                nextGeneratedZ,
-                0.9 + Math.random() * 0.6
-            );
-
-        tree.userData.dynamic = true;
-    }
-}
-
-function ensureInfiniteWorld() {
-
-    while (
-        nextGeneratedZ >
-        player.position.z - GENERATED_AHEAD
-    ) {
-        generateInfiniteChunk();
-    }
-
-    cleanupInfiniteWorld();
-}
-
-/* ÐÐµÑÐ²ÑÐµ Ð´Ð¾Ð¿Ð¾Ð»Ð½Ð¸ÑÐµÐ»ÑÐ½ÑÐµ ÑÐµÐ³Ð¼ÐµÐ½ÑÑ ÑÐ¾Ð·Ð´Ð°ÑÑÑÑ ÑÑÐ°Ð·Ñ */
-ensureInfiniteWorld();
-
 
 /* =========================================================
    PLATFORM
@@ -1682,7 +1425,7 @@ function createSnowMountain(x, y, z, scaleX, scaleY, scaleZ) {
 }
 
 
-/* ÐÐÐÐ¬ÐÐÐ Ð¡ÐÐÐÐÐ«Ð ÐÐÐ Ð« */
+/* ДАЛЬНИЕ СНЕЖНЫЕ ГОРЫ */
 
 createSnowMountain(-13, 6, -35, 7, 7, 5);
 createSnowMountain(13, 7, -45, 8, 8, 6);
@@ -1693,7 +1436,7 @@ createSnowMountain(15, 11, -120, 12, 12, 10);
 createSnowMountain(-16, 12, -143, 13, 13, 11);
 
 
-/* ÐÐÐÐ */
+/* ЁЛКИ */
 
 createTree(-7, 0, 0, 1.15);
 createTree(7, 0, -3, 1.2);
@@ -1717,7 +1460,7 @@ createTree(-8, 12, -138, 1.35);
 createTree(8, 13, -147, 1.5);
 
 
-/* Ð¡ÐÐÐÐÐ«Ð Ð¥ÐÐÐÐ« ÐÐ ÐÐÐÐÐ */
+/* СНЕЖНЫЕ ХОЛМЫ ПО БОКАМ */
 
 function createSnowHill(x, y, z, scale) {
 
@@ -2113,7 +1856,7 @@ rightBoot.position.set(
 rightLegPivot.add(rightBoot);
 
 /* =========================================================
-   Ð¡ÐÐÐÐÐ«Ð ÐÐÐ
+   СНЕЖНЫЙ ПОЛ
    ========================================================= */
 
 const floorMaterial = new THREE.MeshStandardMaterial({
@@ -2153,6 +1896,185 @@ let animTime = 0;
 
 let previousTime =
     performance.now();
+
+
+/* =========================================================
+   БЕСКОНЕЧНАЯ ТРАССА
+   ========================================================= */
+
+let nextGeneratedZ = -151;
+let generatedX = 2;
+let generatedY = 13;
+
+const GENERATED_AHEAD = 320;
+const GENERATED_BEHIND = 70;
+
+function currentDistance() {
+    return Math.max(
+        0,
+        START_Z - player.position.z
+    );
+}
+
+function currentLevel() {
+    return 1 + Math.floor(
+        currentDistance() / 500
+    );
+}
+
+function getRunSpeed() {
+    return Math.min(
+        12,
+        AUTO_SPEED + currentDistance() * 0.0018
+    );
+}
+
+function removeInfiniteObject(mesh) {
+    if (mesh && mesh.parent) {
+        mesh.parent.remove(mesh);
+    }
+}
+
+function cleanupInfiniteWorld() {
+    const limit =
+        player.position.z + GENERATED_BEHIND;
+
+    for (let i = platforms.length - 1; i >= 0; i--) {
+        const p = platforms[i];
+        if (p.dynamic && p.z > limit) {
+            removeInfiniteObject(p.mesh);
+            platforms.splice(i, 1);
+        }
+    }
+
+    for (let i = hazards.length - 1; i >= 0; i--) {
+        const h = hazards[i];
+        if (h.dynamic && h.z > limit) {
+            removeInfiniteObject(h.mesh);
+            hazards.splice(i, 1);
+        }
+    }
+
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        if (c.dynamic && c.mesh.position.z > limit) {
+            removeInfiniteObject(c.mesh);
+            coins.splice(i, 1);
+        }
+    }
+
+    for (let i = trees.length - 1; i >= 0; i--) {
+        const tree = trees[i];
+        if (tree.userData.dynamic && tree.position.z > limit) {
+            removeInfiniteObject(tree);
+            trees.splice(i, 1);
+        }
+    }
+}
+
+function generateInfiniteChunk() {
+    const level = currentLevel();
+
+    const gap =
+        8.0 + Math.random() * 1.2;
+
+    nextGeneratedZ -= gap;
+
+    const maxX = Math.min(4.5, 3.2 + level * 0.15);
+
+    generatedX = THREE.MathUtils.clamp(
+        generatedX + (Math.random() * 4 - 2),
+        -maxX,
+        maxX
+    );
+
+    const maxStepY = Math.min(1.1, 0.65 + level * 0.06);
+
+    generatedY = THREE.MathUtils.clamp(
+        generatedY + (Math.random() * 2 - 1) * maxStepY,
+        0,
+        18
+    );
+
+    const width = Math.max(5.2, 7.3 - Math.min(level, 15) * 0.10 - Math.random() * 0.9);
+    const depth = 6.9 + Math.random() * 0.9;
+
+    const roll = Math.random();
+    const material =
+        roll < 0.25 ? mats.ice :
+        roll < 0.50 ? mats.wood :
+        mats.snow;
+
+    platform(
+        generatedX,
+        generatedY,
+        nextGeneratedZ,
+        width,
+        depth,
+        0.8,
+        material
+    );
+
+    platforms[platforms.length - 1].dynamic = true;
+
+    createCoin(
+        generatedX,
+        generatedY + 1.25,
+        nextGeneratedZ
+    );
+
+    coins[coins.length - 1].dynamic = true;
+
+    const hazardChance =
+        Math.min(0.42, 0.16 + level * 0.025);
+
+    if (Math.random() < hazardChance) {
+        const hazardWidth =
+            1.15 + Math.random() * 0.55;
+
+        const hazardHeight =
+            1.0 + Math.random() * 0.8;
+
+        const hazardX =
+            THREE.MathUtils.clamp(
+                generatedX + (Math.random() * 2.4 - 1.2),
+                generatedX - width / 2 + 0.9,
+                generatedX + width / 2 - 0.9
+            );
+
+        hazard(
+            hazardX,
+            generatedY + 0.4 + hazardHeight / 2,
+            nextGeneratedZ,
+            hazardWidth,
+            hazardHeight,
+            1.15,
+            Math.random() < 0.5 ? mats.red : mats.blue
+        );
+
+        hazards[hazards.length - 1].dynamic = true;
+    }
+
+    if (Math.random() < 0.7) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const tree = createTree(
+            side * (7 + Math.random() * 2.5),
+            Math.max(0, generatedY - 0.2),
+            nextGeneratedZ,
+            0.9 + Math.random() * 0.55
+        );
+
+        tree.userData.dynamic = true;
+    }
+}
+
+function ensureInfiniteWorld() {
+    while (nextGeneratedZ > player.position.z - GENERATED_AHEAD) {
+        generateInfiniteChunk();
+    }
+
+    cleanupInfiniteWorld();
+}
 
 
 /* =========================================================
@@ -2792,7 +2714,7 @@ function updatePlayer(
         return;
     }
 
-    /* AUTO FORWARD â ÑÐºÐ¾ÑÐ¾ÑÑÑ Ð¿Ð¾ÑÑÐµÐ¿ÐµÐ½Ð½Ð¾ ÑÐ°ÑÑÑÑ */
+    /* AUTO FORWARD */
 
     player.position.z -=
         getRunSpeed() * dt;
@@ -2923,7 +2845,7 @@ function updatePlayer(
     ) {
 
         showGameOver(
-            "Ð¢Ñ ÑÐ¿Ð°Ð»!"
+            "Ты упал!"
         );
 
         return;
@@ -2937,14 +2859,14 @@ function updatePlayer(
     ) {
 
         showGameOver(
-            "ÐÐ¹! ÐÑÐµÐ¿ÑÑÑÑÐ²Ð¸Ðµ!"
+            "Ой! Препятствие!"
         );
 
         return;
     }
 
 
-    /* ÐÐÐ¡ÐÐÐÐÐ§ÐÐÐ¯ Ð¢Ð ÐÐ¡Ð¡Ð */
+    /* БЕСКОНЕЧНАЯ ТРАССА */
 
     ensureInfiniteWorld();
 }
@@ -3080,7 +3002,7 @@ function updateUI() {
     document.getElementById(
         "coinsUI"
     ).textContent =
-        "âï¸ ÐÐ¾Ð½ÐµÑÑ: " +
+        "❄️ Монеты: " +
         coinCount;
 
     const distance =
@@ -3095,17 +3017,16 @@ function updateUI() {
     document.getElementById(
         "distanceUI"
     ).textContent =
-        "ÐÐ¸ÑÑÐ°Ð½ÑÐ¸Ñ: " +
+        "Дистанция: " +
         distance +
-        " Ð¼";
+        " м";
 
-    const level =
-        currentLevel();
+    const level = currentLevel();
 
     document.getElementById(
         "levelUI"
     ).textContent =
-        "Ð£ÑÐ¾Ð²ÐµÐ½Ñ: " +
+        "Уровень: " +
         level;
 }
 
@@ -3129,21 +3050,13 @@ function showGameOver(
     document.getElementById(
         "messageTitle"
     ).textContent =
-        "ÐÐ³ÑÐ° Ð¾ÐºÐ¾Ð½ÑÐµÐ½Ð°";
+        "Игра окончена";
 
     document.getElementById(
         "messageText"
     ).textContent =
         text +
-        " ÐÐ¸ÑÑÐ°Ð½ÑÐ¸Ñ: " +
-        Math.max(
-            0,
-            Math.round(
-                START_Z -
-                player.position.z
-            )
-        ) +
-        " Ð¼ â¢ ÐÐ¾Ð½ÐµÑÑ: " +
+        " Монеты: " +
         coinCount;
 
     document.getElementById(
@@ -3171,16 +3084,16 @@ function finishGame() {
     document.getElementById(
         "messageTitle"
     ).textContent =
-        "ð Ð¤Ð¸Ð½Ð¸Ñ!";
+        "🏆 Финиш!";
 
     document.getElementById(
         "messageText"
     ).textContent =
-        "Ð¢Ñ Ð¿ÑÐ¾ÑÑÐ» Ð·Ð¸Ð¼Ð½Ð¸Ð¹ Ð¿Ð°ÑÐºÑÑ Ð¸ ÑÐ¾Ð±ÑÐ°Ð» " +
+        "Ты прошёл зимний паркур и собрал " +
         coinCount +
-        " Ð¸Ð· " +
+        " из " +
         coins.length +
-        " Ð¼Ð¾Ð½ÐµÑ.";
+        " монет.";
 
     document.getElementById(
         "message"
@@ -3235,6 +3148,13 @@ window.addEventListener(
 
 
 /* =========================================================
+   INITIALIZE INFINITE WORLD
+   ========================================================= */
+
+ensureInfiniteWorld();
+
+
+/* =========================================================
    INITIAL CAMERA
    ========================================================= */
 
@@ -3277,8 +3197,6 @@ function animate(
             0.033
         );
 
-
-    ensureInfiniteWorld();
 
     updatePlayer(
         dt
